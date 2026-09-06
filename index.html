@@ -470,7 +470,12 @@ body {
 
 <!-- Navigation -->
 <nav class="nav">
-  <div class="nav-title">Bliesweg 4a <small>· Hausplan 2026</small></div>
+  <div class="nav-title">Bliesweg 4a <small>· Hausplan</small></div>
+  <select class="btn btn-fill btn-sm" id="yearSelect" onchange="onYearChange()" style="border:none;font-family:var(--font);font-weight:500;font-size:13px"></select>
+  <button class="btn btn-fill btn-sm" id="importMuellBtn" onclick="openMuellImport()" style="display:none" title="Mülltonnenplan importieren">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    ZKE-Import
+  </button>
   <button class="btn btn-fill btn-sm" onclick="openIcsModal()" title="In Kalender exportieren">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Kalender
@@ -689,20 +694,29 @@ body {
     <div class="sheet-handle" onclick="closeIcsModal()"></div>
     <div class="sheet-title">In Kalender exportieren</div>
     <div class="sheet-body">
+
+      <div class="f-section">
+        <div class="f-section-lbl">Wer bist du? (für den Putzplan-Export)</div>
+        <select class="f-in" id="icsPartySelect">
+          <option value="">Alle Termine (kompletter Putzplan)</option>
+        </select>
+        <div class="f-hint">Wähle deine Mietpartei, um nur deine eigenen Putz-Termine zu exportieren – oder lasse "Alle Termine" stehen für den vollständigen Plan.</div>
+      </div>
+
       <div class="f-section-lbl">Was möchtest du exportieren?</div>
       <div class="parties-list" style="max-width:100%">
         <div class="prow" onclick="downloadIcs('putz')" style="cursor:pointer">
           <div class="avatar" style="background:var(--blue)">🧹</div>
           <div class="pinfo">
             <div class="pname">Putzplan Treppenhaus</div>
-            <div class="pdetail">Alle Putzwochen 2026 als Kalendertermine</div>
+            <div class="pdetail">Termine des angezeigten Jahres, ggf. gefiltert auf deine Auswahl oben</div>
           </div>
         </div>
         <div class="prow" onclick="downloadIcs('muell')" style="cursor:pointer">
           <div class="avatar" style="background:var(--orange)">🗑️</div>
           <div class="pinfo">
             <div class="pname">Mülltonnenplan</div>
-            <div class="pdetail">Nur Gelbe Tonne &amp; Papiertonne (aktiv rausstellen)</div>
+            <div class="pdetail">Nur Gelbe Tonne &amp; Papiertonne – jeweils mit zuständiger Partei im Termin</div>
           </div>
         </div>
         <div class="prow" onclick="downloadIcs('all')" style="cursor:pointer">
@@ -721,12 +735,44 @@ body {
   </div>
 </div>
 
+<!-- ZKE Müllplan Import Modal -->
+<div class="overlay" id="muellImportOverlay">
+  <div class="sheet">
+    <div class="sheet-handle" onclick="closeMuellImport()"></div>
+    <div class="sheet-title">Mülltonnenplan importieren</div>
+    <div class="sheet-body">
+      <div class="notice notice-blue">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Lade hier die .ics-Kalenderdatei der ZKE Saarbrücken für dein Jahr hoch. Termine werden automatisch erkannt und Gelbe Tonne/Papiertonne der Rotation zugeordnet.</span>
+      </div>
+      <div class="f-grp">
+        <label class="f-lbl">Für welches Jahr gilt diese Datei?</label>
+        <input class="f-in" id="muellImportYear" type="number" min="2026" max="2099" placeholder="z. B. 2027"/>
+      </div>
+      <div class="f-grp">
+        <label class="f-lbl">ICS-Datei von der ZKE</label>
+        <input class="f-in" id="muellImportFile" type="file" accept=".ics,text/calendar" onchange="handleMuellImportFile(event)"/>
+      </div>
+      <div id="muellImportPreview" style="display:none">
+        <div class="f-section-lbl" style="margin-top:16px">Vorschau der erkannten Termine</div>
+        <div class="card" style="max-height:280px;overflow-y:auto" id="muellImportPreviewList"></div>
+        <div class="f-hint" id="muellImportSummary" style="margin-top:8px"></div>
+      </div>
+      <div class="f-hint" id="muellImportError" style="color:var(--red);display:none"></div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-fill" onclick="closeMuellImport()">Abbrechen</button>
+      <button class="btn btn-blue" id="muellImportSaveBtn" onclick="saveMuellImport()" style="display:none">Übernehmen &amp; speichern</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════════════════════
 //  EXACT DATA FROM PDF – hardcoded, not recalculated
 // ════════════════════════════════════════════════════════════════
 
-const PUTZ_PDF = [
+const PUTZ_PDF_LEGACY_UNUSED = [
   // Q1
   {kw:2,  dates:'05.01.–11.01.', iso:'2026-01-05', pid:'dunár'},
   {kw:4,  dates:'19.01.–25.01.', iso:'2026-01-19', pid:'simmer'},
@@ -759,7 +805,7 @@ const PUTZ_PDF = [
   {kw:52, dates:'21.12.–27.12.', iso:'2026-12-21', pid:'simmer'},
 ];
 
-const MUELL_PDF = [
+const MUELL_2026_DEFAULT = [
   // Januar
   {m:0,d:'08.01.',type:'Restmüll',   pid:null},
   {m:0,d:'08.01.',type:'Biomüll',    pid:null},
@@ -904,6 +950,61 @@ const DEFAULTS = [
 const DEFAULT_ORDER = DEFAULTS.map(p => p.id);
 
 // ════════════════════════════════════════════════════════════════
+//  MEHRJAHRES-ROTATION — Putzplan läuft automatisch unendlich weiter
+// ════════════════════════════════════════════════════════════════
+
+const ROTATION_EPOCH_ISO = '2026-01-05';
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function mondayOfIsoWeek(year, week) {
+  const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
+  const dow = simple.getUTCDay() || 7;
+  const monday = new Date(simple);
+  monday.setUTCDate(simple.getUTCDate() - dow + 1);
+  return monday;
+}
+
+function generatePutzForYear(year) {
+  const epoch = parseD(ROTATION_EPOCH_ISO);
+  const entries = [];
+  for (let w = 1; w <= 53; w++) {
+    const monday = mondayOfIsoWeek(year, w);
+    if (monday.getUTCFullYear() !== year) continue;
+    const kw = getKW(monday);
+    if (kw !== w) continue;
+    if (kw % 2 !== 0) continue;
+    const sunday = new Date(monday);
+    sunday.setUTCDate(sunday.getUTCDate() + 6);
+    const mondayIso = dateToIso(monday);
+    const cycleIndex = Math.round((monday - epoch) / (1000 * 60 * 60 * 24 * 14));
+    const n = DEFAULT_ORDER.length;
+    const pid = DEFAULT_ORDER[((cycleIndex % n) + n) % n];
+    entries.push({
+      kw,
+      dates: `${pad2(monday.getUTCDate())}.${pad2(monday.getUTCMonth() + 1)}.–${pad2(sunday.getUTCDate())}.${pad2(sunday.getUTCMonth() + 1)}.`,
+      iso: mondayIso,
+      pid
+    });
+  }
+  entries.sort((a, b) => a.iso.localeCompare(b.iso));
+  return entries;
+}
+
+function getPutzData() {
+  return generatePutzForYear(ACTIVE_YEAR);
+}
+
+function getMuellData() {
+  return muellDataByYear[ACTIVE_YEAR] || [];
+}
+
+function availableMuellYears() {
+  return Object.keys(muellDataByYear).map(y => parseInt(y, 10)).sort((a, b) => a - b);
+}
+
+
+// ════════════════════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════════════════════
 
@@ -919,6 +1020,21 @@ let editId = null;
 let selColor = '#AF52DE';
 let dragIdx = null;
 let toastTimer = null;
+
+let muellDataByYear = { 2026: MUELL_2026_DEFAULT };
+try {
+  const savedMuell = localStorage.getItem('hausplan_muell_years');
+  if (savedMuell) {
+    const parsed = JSON.parse(savedMuell);
+    if (parsed && typeof parsed === 'object') {
+      muellDataByYear = Object.assign({ 2026: MUELL_2026_DEFAULT }, parsed);
+    }
+  }
+} catch (e) {}
+
+const REAL_TODAY_YEAR = new Date().getFullYear();
+let ACTIVE_YEAR = Math.max(2026, REAL_TODAY_YEAR);
+let importedPreviewEvents = null;
 
 normalizeParties();
 
@@ -1153,13 +1269,13 @@ function assignDynamicStream(entries) {
 }
 
 function getResolvedPlans() {
-  const putzEntries = PUTZ_PDF.map((e, i) => ({
+  const putzEntries = getPutzData().map((e, i) => ({
     ...e,
     _key: `p${i}`,
     iso: e.iso
   }));
 
-  const muellEntries = MUELL_PDF
+  const muellEntries = getMuellData()
     .map((e, i) => e.pid ? { ...e, _key: `m${i}`, iso: muellIso(e) } : null)
     .filter(Boolean);
 
@@ -1200,7 +1316,7 @@ function renderOverview() {
   const today = todayIso();
 
   const upcoming = [];
-  MUELL_PDF.forEach((e, idx) => {
+  getMuellData().forEach((e, idx) => {
     if (!e.pid) return;
     const iso = muellIso(e);
     if (iso < today) return;
@@ -1223,8 +1339,8 @@ function renderOverview() {
     `;
   }).join('') || `<p style="color:var(--label2);font-size:14px;grid-column:1/-1">Keine weiteren Termine für 2026.</p>`;
 
-  const currentPutz = PUTZ_PDF.find(s => today >= s.iso && today <= addDaysIso(s.iso, 6));
-  const nextPutz = PUTZ_PDF.find(s => s.iso > today);
+  const currentPutz = getPutzData().find(s => today >= s.iso && today <= addDaysIso(s.iso, 6));
+  const nextPutz = getPutzData().find(s => s.iso > today);
   const kw = getKW();
 
   const wb = document.getElementById('weekBanner');
@@ -1234,7 +1350,7 @@ function renderOverview() {
   wb.style.display = 'flex';
 
   if (currentPutz) {
-    const idx = PUTZ_PDF.indexOf(currentPutz);
+    const idx = getPutzData().indexOf(currentPutz);
     const id = putzMap.get(`p${idx}`);
     const p = id && P(id);
     if (p) {
@@ -1287,7 +1403,7 @@ function renderPutzplan() {
   }
 
   const groups = {};
-  PUTZ_PDF.forEach((e, idx) => {
+  getPutzData().forEach((e, idx) => {
     const month = parseInt(e.iso.slice(5, 7), 10) - 1;
     const q = quarterLabelByMonth(month);
     if (!groups[q]) groups[q] = [];
@@ -1322,7 +1438,7 @@ function renderMuellplan() {
   const { muellMap } = getResolvedPlans();
 
   document.getElementById('monthsGrid').innerHTML = MONTHS.map((monthName, m) => {
-    const rows = MUELL_PDF.map((e, idx) => {
+    const rows = getMuellData().map((e, idx) => {
       if (e.m !== m) return '';
       if (!e.pid) {
         return `
@@ -1494,7 +1610,7 @@ function renderStats() {
   const totalParties = sortedParties().length;
   const putzTotal = [...putzMap.values()].filter(Boolean).length;
   const muellTotal = [...muellMap.values()].filter(Boolean).length;
-  const feiertage = MUELL_PDF.filter(e => e.f).length;
+  const feiertage = getMuellData().filter(e => e.f).length;
 
   document.getElementById('statsGrid').innerHTML = `
     <div class="stat-card">
@@ -1690,7 +1806,7 @@ function buildPlanRotation() {
 }
 
 function buildPlanPutzRows(putzMap) {
-  return PUTZ_PDF.map((e, idx) => {
+  return getPutzData().map((e, idx) => {
     const assignedId = putzMap.get(`p${idx}`);
     const p = assignedId && P(assignedId);
     const changed = assignedId && assignedId !== e.pid;
@@ -1707,8 +1823,8 @@ function buildPlanPutzRows(putzMap) {
   }).join('');
 }
 
-function buildPlanPutzRowsSlice(putzMap, start = 0, end = PUTZ_PDF.length) {
-  return PUTZ_PDF.slice(start, end).map((e, relIdx) => {
+function buildPlanPutzRowsSlice(putzMap, start = 0, end = getPutzData().length) {
+  return getPutzData().slice(start, end).map((e, relIdx) => {
     const idx = start + relIdx;
     const assignedId = putzMap.get(`p${idx}`);
     const p = assignedId && P(assignedId);
@@ -1813,7 +1929,7 @@ function buildExportPagesHTML() {
 
   return [
     page(header + intro + putzTitle(false) + putzCard(0, 13)),
-    page(putzTitle(true) + putzCard(13, PUTZ_PDF.length)),
+    page(putzTitle(true) + putzCard(13, getPutzData().length)),
     page(muellTitle(false) + muellBlock(0, 4)),
     page(muellTitle(true) + muellBlock(4, 8)),
     page(muellTitle(true) + muellBlock(8, 12)),
@@ -1822,7 +1938,7 @@ function buildExportPagesHTML() {
 }
 
 function buildPlanMonth(monthIndex, muellMap) {
-  const rows = MUELL_PDF.map((e, idx) => {
+  const rows = getMuellData().map((e, idx) => {
     if (e.m !== monthIndex) return '';
     if (!e.pid) {
       return `
@@ -2053,8 +2169,37 @@ async function exportPDF() {
 //  RENDER ALL
 // ════════════════════════════════════════════════════════════════
 
+function saveMuellYears() {
+  try { localStorage.setItem('hausplan_muell_years', JSON.stringify(muellDataByYear)); } catch (e) {}
+}
+
+function renderYearSelect() {
+  const sel = document.getElementById('yearSelect');
+  if (!sel) return;
+  const years = new Set([2026, REAL_TODAY_YEAR, REAL_TODAY_YEAR + 1, ...availableMuellYears()]);
+  const sorted = [...years].filter(y => y >= 2026).sort((a, b) => a - b);
+  sel.innerHTML = sorted.map(y => `<option value="${y}"${y === ACTIVE_YEAR ? ' selected' : ''}>${y}</option>`).join('');
+}
+
+function onYearChange() {
+  const sel = document.getElementById('yearSelect');
+  ACTIVE_YEAR = parseInt(sel.value, 10);
+  renderAll();
+}
+
+function renderIcsPartySelect() {
+  const sel = document.getElementById('icsPartySelect');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Alle Termine (kompletter Putzplan)</option>' +
+    sortedParties().map(p => `<option value="${esc(p.id)}">${esc(p.name)} (nur eigene Termine)</option>`).join('');
+  if (current) sel.value = current;
+}
+
 function renderAll() {
   normalizeParties();
+  renderYearSelect();
+  renderIcsPartySelect();
   renderPlanPreview();
   renderLegends();
   renderOverview();
@@ -2080,10 +2225,6 @@ window.addEventListener('keydown', e => {
 // ════════════════════════════════════════════════════════════════
 //  FIREBASE CONFIG  ---  HIER DEINE FIREBASE-DATEN EINTRAGEN
 // ════════════════════════════════════════════════════════════════
-// Anleitung: console.firebase.google.com -> Projekt anlegen (kostenlos)
-// -> Web-App hinzufügen -> Config hier einfügen
-// -> Authentication: E-Mail/Passwort aktivieren, einen Admin-User anlegen
-// -> Firestore Database: im Testmodus (oder mit untenstehenden Regeln) anlegen
 const firebaseConfig = {
   apiKey: "AIzaSyCRmEIy2jzoOdVXdGEQQqu7ClnGHPtj5Wc",
   authDomain: "hausplan-bliesweg4a.firebaseapp.com",
@@ -2109,25 +2250,26 @@ try {
   console.warn('Firebase nicht initialisiert:', e);
 }
 
-// ── AUTH STATE ──────────────────────────────────────────────────
 function updateAuthUI() {
   const loginLabel = document.getElementById('loginBtnLabel');
   const addPartyBtn = document.getElementById('addPartyBtn');
   const navAddPartyBtn = document.getElementById('navAddPartyBtn');
   const viewerNotice = document.getElementById('viewerNotice');
-  const delBtn = document.getElementById('delBtn');
+  const importMuellBtn = document.getElementById('importMuellBtn');
 
   if (isAdmin) {
     loginLabel.textContent = 'Admin ✓';
     if (addPartyBtn) addPartyBtn.style.display = 'flex';
     if (navAddPartyBtn) navAddPartyBtn.style.display = 'inline-flex';
     if (viewerNotice) viewerNotice.style.display = 'none';
+    if (importMuellBtn) importMuellBtn.style.display = 'inline-flex';
     document.querySelectorAll('.prow').forEach(r => r.style.cursor = 'grab');
   } else {
     loginLabel.textContent = 'Admin';
     if (addPartyBtn) addPartyBtn.style.display = 'none';
     if (navAddPartyBtn) navAddPartyBtn.style.display = 'none';
     if (viewerNotice) viewerNotice.style.display = 'flex';
+    if (importMuellBtn) importMuellBtn.style.display = 'none';
     document.querySelectorAll('.prow').forEach(r => { r.style.cursor = 'default'; r.setAttribute('draggable', 'false'); });
   }
 }
@@ -2142,12 +2284,9 @@ if (fbReady) {
     document.getElementById('logoutBtn').style.display = user ? 'inline-flex' : 'none';
     document.getElementById('loginSubmitBtn').style.display = user ? 'none' : 'inline-flex';
     if (user) document.getElementById('loggedInEmail').textContent = user.email;
-
-    // Firestore-Sync starten sobald bekannt ob Admin oder nicht
     subscribeToData();
   });
 } else {
-  // Kein Firebase konfiguriert -> reiner lokaler Modus, alle sind "Viewer"
   updateAuthUI();
 }
 
@@ -2156,23 +2295,15 @@ function openLogin() {
   document.getElementById('loginOverlay').classList.add('open');
   document.getElementById('loginError').style.display = 'none';
 }
-function closeLoginModal() {
-  document.getElementById('loginOverlay').classList.remove('open');
-}
+function closeLoginModal() { document.getElementById('loginOverlay').classList.remove('open'); }
 function doLogin() {
-  if (!fbReady) {
-    showToast('Firebase ist nicht konfiguriert');
-    return;
-  }
+  if (!fbReady) { showToast('Firebase ist nicht konfiguriert'); return; }
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
   errEl.style.display = 'none';
   firebase.auth().signInWithEmailAndPassword(email, pass)
-    .then(() => {
-      showToast('Als Admin angemeldet');
-      closeLoginModal();
-    })
+    .then(() => { showToast('Als Admin angemeldet'); closeLoginModal(); })
     .catch(e => {
       errEl.textContent = 'Anmeldung fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler');
       errEl.style.display = 'block';
@@ -2180,13 +2311,9 @@ function doLogin() {
 }
 function doLogout() {
   if (!fbReady) return;
-  firebase.auth().signOut().then(() => {
-    showToast('Abgemeldet');
-    closeLoginModal();
-  });
+  firebase.auth().signOut().then(() => { showToast('Abgemeldet'); closeLoginModal(); });
 }
 
-// ── FIRESTORE SYNC (ersetzt/ergänzt localStorage) ───────────────
 let unsubscribeFirestore = null;
 
 function subscribeToData() {
@@ -2200,33 +2327,44 @@ function subscribeToData() {
           parties = data.parties;
           normalizeParties();
           try { localStorage.setItem('hausplan_v4', JSON.stringify(parties)); } catch (e) {}
-          renderAll();
         }
+        if (data && data.muellYears && typeof data.muellYears === 'object') {
+          muellDataByYear = Object.assign({ 2026: MUELL_2026_DEFAULT }, data.muellYears);
+          saveMuellYears();
+        }
+        renderAll();
       } else if (isAdmin) {
-        // Noch kein Dokument vorhanden -> Admin legt Ausgangsdaten an
-        db.collection(DOC_PATH.col).doc(DOC_PATH.doc).set({ parties: parties, updatedAt: new Date().toISOString() });
+        db.collection(DOC_PATH.col).doc(DOC_PATH.doc).set({
+          parties: parties,
+          muellYears: stripDefaultYear(muellDataByYear),
+          updatedAt: new Date().toISOString()
+        });
       }
-    }, err => {
-      console.warn('Firestore-Sync-Fehler:', err);
-    });
+    }, err => console.warn('Firestore-Sync-Fehler:', err));
+}
+
+function stripDefaultYear(obj) {
+  const copy = Object.assign({}, obj);
+  delete copy['2026'];
+  return copy;
 }
 
 function persistToCloud() {
   if (fbReady && db && isAdmin) {
-    db.collection(DOC_PATH.col).doc(DOC_PATH.doc)
-      .set({ parties: parties, updatedAt: new Date().toISOString() })
-      .catch(e => console.warn('Cloud-Speichern fehlgeschlagen:', e));
+    db.collection(DOC_PATH.col).doc(DOC_PATH.doc).set({
+      parties: parties,
+      muellYears: stripDefaultYear(muellDataByYear),
+      updatedAt: new Date().toISOString()
+    }).catch(e => console.warn('Cloud-Speichern fehlgeschlagen:', e));
   }
 }
 
-// Original save() um Cloud-Persistenz erweitern
 const _originalSave = save;
 save = function (msg = 'Gespeichert') {
   _originalSave(msg);
   persistToCloud();
 };
 
-// ── SCHREIBSCHUTZ: Nicht-Admins können keine Parteien ändern ───
 const _originalSaveParty = saveParty;
 saveParty = function () {
   if (!isAdmin) { showToast('Nur Admins können Änderungen speichern'); closeModal(); return; }
@@ -2253,25 +2391,157 @@ openEdit = function (id) {
   _originalOpenEdit(id);
 };
 
-// ════════════════════════════════════════════════════════════════
-//  ICS / KALENDER EXPORT
-// ════════════════════════════════════════════════════════════════
+function parseIcsDate(v) {
+  const m = String(v).match(/(\d{4})(\d{2})(\d{2})/);
+  if (!m) return null;
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+function detectMuellType(summary) {
+  const s = summary.toLowerCase();
+  if (s.includes('gelb')) return 'Gelbe Tonne';
+  if (s.includes('papier') || s.includes('altpapier')) return 'Papiertonne';
+  if (s.includes('bio')) return 'Biomüll';
+  if (s.includes('rest')) return 'Restmüll';
+  return null;
+}
+
+function parseIcsFile(text) {
+  const events = [];
+  const blocks = text.split('BEGIN:VEVENT').slice(1);
+  blocks.forEach(block => {
+    const body = block.split('END:VEVENT')[0];
+    const summaryMatch = body.match(/SUMMARY:(.*)/);
+    const dtMatch = body.match(/DTSTART[^:]*:(.*)/);
+    const descMatch = body.match(/DESCRIPTION:(.*)/);
+    if (!summaryMatch || !dtMatch) return;
+    const summary = summaryMatch[1].trim();
+    const iso = parseIcsDate(dtMatch[1].trim());
+    if (!iso) return;
+    const type = detectMuellType(summary);
+    if (!type) return;
+    const isHoliday = /feiertag|verschoben|ausnahme/i.test((descMatch ? descMatch[1] : '') + summary);
+    events.push({ iso, type, holiday: isHoliday });
+  });
+  events.sort((a, b) => a.iso.localeCompare(b.iso));
+  return events;
+}
+
+function lastAssignedBeforeYear(year) {
+  const years = availableMuellYears().filter(y => y < year);
+  if (!years.length) return null;
+  const prevYear = Math.max(...years);
+  const prevEvents = (muellDataByYear[prevYear] || []).filter(e => e.pid).slice();
+  if (!prevEvents.length) return null;
+  return prevEvents[prevEvents.length - 1].pid;
+}
+
+function buildMuellEntriesFromIcs(events, year) {
+  let lastAssigned = lastAssignedBeforeYear(year);
+  return events.map(ev => {
+    const iso = ev.iso;
+    const m = parseInt(iso.slice(5, 7), 10) - 1;
+    const d = `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+    const entry = { m, d, type: ev.type, pid: null };
+    if (ev.holiday) entry.f = true;
+    if (ev.type === 'Gelbe Tonne' || ev.type === 'Papiertonne') {
+      const actives = activeIds(iso);
+      if (actives.length) {
+        const next = lastAssigned ? nextAfterReference(lastAssigned, actives) : actives[0];
+        entry.pid = next;
+        lastAssigned = next;
+      }
+    }
+    return entry;
+  });
+}
+
+function openMuellImport() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('muellImportOverlay').classList.add('open');
+  document.getElementById('muellImportYear').value = ACTIVE_YEAR === 2026 ? REAL_TODAY_YEAR + 1 : ACTIVE_YEAR;
+  document.getElementById('muellImportFile').value = '';
+  document.getElementById('muellImportPreview').style.display = 'none';
+  document.getElementById('muellImportSaveBtn').style.display = 'none';
+  document.getElementById('muellImportError').style.display = 'none';
+  importedPreviewEvents = null;
+}
+function closeMuellImport() { document.getElementById('muellImportOverlay').classList.remove('open'); }
+
+function handleMuellImportFile(evt) {
+  const file = evt.target.files[0];
+  const errEl = document.getElementById('muellImportError');
+  errEl.style.display = 'none';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const events = parseIcsFile(String(reader.result));
+      if (!events.length) {
+        errEl.textContent = 'Keine passenden Termine in der Datei gefunden (erwartet: Restmüll, Biomüll, Gelbe Tonne, Papiertonne im Titel).';
+        errEl.style.display = 'block';
+        document.getElementById('muellImportPreview').style.display = 'none';
+        document.getElementById('muellImportSaveBtn').style.display = 'none';
+        return;
+      }
+      importedPreviewEvents = events;
+      const list = document.getElementById('muellImportPreviewList');
+      list.innerHTML = events.map(e => `
+        <div class="row">
+          <div style="min-width:80px;font-size:13px;color:var(--label2)">${fmt(e.iso)}</div>
+          <div style="flex:1">${esc(e.type)}${e.holiday ? ' <span class="chip chip-orange">Feiertag</span>' : ''}</div>
+        </div>
+      `).join('');
+      document.getElementById('muellImportSummary').textContent = `${events.length} Termine erkannt.`;
+      document.getElementById('muellImportPreview').style.display = 'block';
+      document.getElementById('muellImportSaveBtn').style.display = 'inline-flex';
+    } catch (e) {
+      errEl.textContent = 'Datei konnte nicht gelesen werden: ' + e.message;
+      errEl.style.display = 'block';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function saveMuellImport() {
+  if (!isAdmin) { showToast('Nur Admins können importieren'); return; }
+  const yearInput = parseInt(document.getElementById('muellImportYear').value, 10);
+  if (!yearInput || yearInput < 2026) {
+    document.getElementById('muellImportError').textContent = 'Bitte ein gültiges Jahr angeben (ab 2026).';
+    document.getElementById('muellImportError').style.display = 'block';
+    return;
+  }
+  if (!importedPreviewEvents || !importedPreviewEvents.length) {
+    showToast('Keine Termine zum Speichern vorhanden');
+    return;
+  }
+  const entries = buildMuellEntriesFromIcs(importedPreviewEvents, yearInput);
+  muellDataByYear[yearInput] = entries;
+  saveMuellYears();
+  persistToCloud();
+  ACTIVE_YEAR = yearInput;
+  closeMuellImport();
+  renderAll();
+  showToast(`Mülltonnenplan ${yearInput} importiert (${entries.length} Termine)`);
+}
 
 function icsEscape(s) {
   return String(s || '').replace(/[\\,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
 }
-
-function icsDate(iso) {
-  return iso.replace(/-/g, '');
-}
+function icsDate(iso) { return iso.replace(/-/g, ''); }
 
 function buildIcsEvents(kind) {
   const { putzMap, muellMap } = getResolvedPlans();
   const events = [];
+  const putzData = getPutzData();
+  const muellData = getMuellData();
+  const filterPartyId = document.getElementById('icsPartySelect') ? document.getElementById('icsPartySelect').value : '';
 
   if (kind === 'putz' || kind === 'all') {
-    PUTZ_PDF.forEach((e, idx) => {
+    putzData.forEach((e, idx) => {
       const assignedId = putzMap.get(`p${idx}`);
+      if (filterPartyId && assignedId !== filterPartyId) return;
       const p = assignedId && P(assignedId);
       const endIso = addDaysIso(e.iso, 7);
       events.push({
@@ -2279,16 +2549,15 @@ function buildIcsEvents(kind) {
         start: e.iso,
         end: endIso,
         summary: `Putzwoche KW ${e.kw}${p ? ' – ' + p.name : ''}`,
-        desc: `Treppenhaus-Putzplan · Zeitraum ${e.dates}${p ? ' · Zuständig: ' + p.name : ''}`,
-        allDay: true
+        desc: `Treppenhaus-Putzplan · Zeitraum ${e.dates}${p ? ' · Zuständig: ' + p.name : ''}`
       });
     });
   }
 
   if (kind === 'muell' || kind === 'all') {
-    MUELL_PDF.forEach((e, idx) => {
-      if (!e.pid) return; // nur aktiv rauszustellende Tonnen (Gelbe/Papier)
-      const iso = muellIso(e);
+    muellData.forEach((e, idx) => {
+      if (!e.pid) return;
+      const iso = `${ACTIVE_YEAR}-${String(e.m + 1).padStart(2, '0')}-${String(parseInt(e.d, 10)).padStart(2, '0')}`;
       const assignedId = muellMap.get(`m${idx}`);
       const p = assignedId && P(assignedId);
       events.push({
@@ -2296,8 +2565,7 @@ function buildIcsEvents(kind) {
         start: iso,
         end: addDaysIso(iso, 1),
         summary: `${e.type} rausstellen${p ? ' – ' + p.name : ''}`,
-        desc: `Mülltonnenplan · ${e.type}${p ? ' · Zuständig: ' + p.name : ''}${e.f ? ' · Feiertagsabweichung' : ''}`,
-        allDay: true
+        desc: `Mülltonnenplan · ${e.type}${p ? ' · Zuständig: ' + p.name : ''}${e.f ? ' · Feiertagsabweichung' : ''}`
       });
     });
   }
@@ -2307,13 +2575,7 @@ function buildIcsEvents(kind) {
 
 function buildIcsFile(kind) {
   const events = buildIcsEvents(kind);
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Hausplan Bliesweg 4a//DE',
-    'CALSCALE:GREGORIAN'
-  ];
-
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Hausplan Bliesweg 4a//DE', 'CALSCALE:GREGORIAN'];
   events.forEach(ev => {
     lines.push('BEGIN:VEVENT');
     lines.push(`UID:${ev.uid}`);
@@ -2324,43 +2586,35 @@ function buildIcsFile(kind) {
     lines.push(`DESCRIPTION:${icsEscape(ev.desc)}`);
     lines.push('END:VEVENT');
   });
-
   lines.push('END:VCALENDAR');
   return lines.join('\r\n');
 }
 
 function openIcsModal() {
+  renderIcsPartySelect();
   document.getElementById('icsOverlay').classList.add('open');
 }
-function closeIcsModal() {
-  document.getElementById('icsOverlay').classList.remove('open');
-}
+function closeIcsModal() { document.getElementById('icsOverlay').classList.remove('open'); }
 
 function downloadIcs(kind) {
   const content = buildIcsFile(kind);
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-  const filename = kind === 'putz' ? 'putzplan-2026.ics' : kind === 'muell' ? 'muelltonnenplan-2026.ics' : 'hausplan-2026-komplett.ics';
+  const filename = kind === 'putz' ? `putzplan-${ACTIVE_YEAR}.ics` : kind === 'muell' ? `muelltonnenplan-${ACTIVE_YEAR}.ics` : `hausplan-${ACTIVE_YEAR}-komplett.ics`;
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   closeIcsModal();
   showToast('Kalenderdatei heruntergeladen');
 }
 
-// ── Modal-Overlay Klicks für neue Modals ────────────────────────
 document.getElementById('loginOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeLoginModal(); });
 document.getElementById('icsOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeIcsModal(); });
+document.getElementById('muellImportOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeMuellImport(); });
 
-// ── PWA Service Worker ───────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
 
 renderColorGrid();
