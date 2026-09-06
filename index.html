@@ -974,11 +974,14 @@ const ROTATION_EPOCH_ISO = '2026-01-05';
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 
+// Korrekte ISO-8601 Berechnung: der 4. Januar liegt IMMER in KW1.
 function mondayOfIsoWeek(year, week) {
-  const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
-  const dow = simple.getUTCDay() || 7;
-  const monday = new Date(simple);
-  monday.setUTCDate(simple.getUTCDate() - dow + 1);
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Dow = jan4.getUTCDay() || 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Dow - 1));
+  const monday = new Date(week1Monday);
+  monday.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
   return monday;
 }
 
@@ -2213,6 +2216,21 @@ function renderIcsPartySelect() {
   if (current) sel.value = current;
 }
 
+function renderMuellEmptyState() {
+  const grid = document.getElementById('monthsGrid');
+  if (!grid) return;
+  if (getMuellData().length > 0) return;
+  const importHint = isAdmin
+    ? `Klicke oben auf <b>"ZKE-Import"</b>, um die .ics-Datei der ZKE Saarbrücken für ${ACTIVE_YEAR} hochzuladen.`
+    : `Der Admin muss die Müllabfuhrtermine für ${ACTIVE_YEAR} zuerst über den ZKE-Import hochladen.`;
+  grid.innerHTML = `
+    <div class="notice notice-orange" style="grid-column:1/-1">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <span>Für ${ACTIVE_YEAR} liegt noch kein Mülltonnenplan vor. ${importHint}</span>
+    </div>
+  `;
+}
+
 function renderAll() {
   normalizeParties();
   renderYearSelect();
@@ -2222,6 +2240,7 @@ function renderAll() {
   renderOverview();
   renderPutzplan();
   renderMuellplan();
+  renderMuellEmptyState();
   renderParties();
   renderStats();
 }
@@ -2289,6 +2308,7 @@ function updateAuthUI() {
     if (importMuellBtn) importMuellBtn.style.display = 'none';
     document.querySelectorAll('.prow').forEach(r => { r.style.cursor = 'default'; r.setAttribute('draggable', 'false'); });
   }
+  renderMuellEmptyState();
 }
 
 if (fbReady) {
