@@ -1022,6 +1022,40 @@ function availableMuellYears() {
   return Object.keys(muellDataByYear).map(y => parseInt(y, 10)).sort((a, b) => a - b);
 }
 
+// ════════════════════════════════════════════════════════════════
+//  JAHRES-RELEVANZ — wer war in einem bestimmten Jahr überhaupt aktiv?
+// ════════════════════════════════════════════════════════════════
+
+function isRelevantForYear(p, year) {
+  const yearStart = `${year}-01-01`;
+  const yearEndExclusive = `${year + 1}-01-01`;
+  const startsBeforeYearEnds = !p.activeFrom || p.activeFrom < yearEndExclusive;
+  const endsAfterYearStarts = !p.activeUntil || p.activeUntil > yearStart;
+  return startsBeforeYearEnds && endsAfterYearStarts;
+}
+
+function yearRelevantParties(year = ACTIVE_YEAR) {
+  return sortedParties().filter(p => isRelevantForYear(p, year));
+}
+
+// Fuer Rotation-Vorschau, Legende, Statistik, Kalender-Auswahl:
+// nur Parteien, die im gewaehlten Jahr ueberhaupt relevant waren.
+// Fuer Nicht-Admins zusaetzlich: aktuell ausgezogene Parteien ausblenden.
+function visibleParties() {
+  const relevant = yearRelevantParties(ACTIVE_YEAR);
+  if (isAdmin) return relevant;
+  return relevant.filter(p => statusOf(p).label !== 'Ausgezogen');
+}
+
+// Fuer die Verwaltungsliste im Parteien-Tab: Admin sieht IMMER alle
+// jemals angelegten Parteien (unabhaengig vom gewaehlten Jahr), um sie
+// bearbeiten/reaktivieren/loeschen zu koennen. Viewer sieht nur aktuell
+// aktive bzw. zukuenftige Parteien.
+function managedParties() {
+  if (isAdmin) return sortedParties();
+  return sortedParties().filter(p => statusOf(p).label !== 'Ausgezogen');
+}
+
 
 // ════════════════════════════════════════════════════════════════
 //  STATE
@@ -1309,7 +1343,8 @@ function getResolvedPlans() {
 // ════════════════════════════════════════════════════════════════
 
 function renderLegends() {
-  const html = sortedParties().map(p => {
+  const parties = visibleParties();
+  const legHtml = parties.map(p => {
     const st = statusOf(p);
     return `
       <div class="leg-item${st.cls === 'chip-red' ? ' gone' : ''}">
@@ -1322,7 +1357,7 @@ function renderLegends() {
 
   ['lgOverview', 'lgPutz', 'lgMuell'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
+    if (el) el.innerHTML = legHtml;
   });
 }
 
@@ -1497,15 +1532,9 @@ function renderMuellplan() {
 //  PARTEIEN
 // ════════════════════════════════════════════════════════════════
 
-function visibleParties() {
-  const all = sortedParties();
-  if (isAdmin) return all;
-  return all.filter(p => statusOf(p).label !== 'Ausgezogen');
-}
-
 function renderRotationPreview() {
   const sorted = visibleParties();
-  const htmlParts = [`<span class="rot-label">Rotation</span>`];
+  const htmlParts = [`<span class="rot-label">Rotation ${ACTIVE_YEAR}</span>`];
 
   sorted.forEach((p, i) => {
     const st = statusOf(p);
@@ -1514,7 +1543,7 @@ function renderRotationPreview() {
   });
 
   if (!sorted.length) {
-    htmlParts.push(`<span style="font-size:13px;color:var(--label2)">Keine aktiven Mietparteien</span>`);
+    htmlParts.push(`<span style="font-size:13px;color:var(--label2)">Keine Parteien für ${ACTIVE_YEAR} relevant</span>`);
   }
 
   document.getElementById('rotPreview').innerHTML = htmlParts.join(' ');
@@ -1534,7 +1563,7 @@ function renderParties() {
   renderRotationPreview();
 
   const list = document.getElementById('partiesList');
-  const sorted = visibleParties();
+  const sorted = managedParties();
 
   list.innerHTML = sorted.map((p, idx) => {
     const st = statusOf(p);
@@ -1609,7 +1638,7 @@ function countAssignments(map) {
 
 function renderFairnessCard(elId, title, counts) {
   const el = document.getElementById(elId);
-  const sorted = sortedParties();
+  const sorted = visibleParties();
   const max = Math.max(1, ...sorted.map(p => counts[p.id] || 0));
 
   el.innerHTML = `
@@ -1635,8 +1664,8 @@ function renderStats() {
   const putzCounts = countAssignments(putzMap);
   const muellCounts = countAssignments(muellMap);
 
-  const activeNow = sortedParties().filter(p => isActiveOn(p, todayIso())).length;
-  const totalParties = sortedParties().length;
+  const activeNow = visibleParties().filter(p => isActiveOn(p, todayIso())).length;
+  const totalParties = visibleParties().length;
   const putzTotal = [...putzMap.values()].filter(Boolean).length;
   const muellTotal = [...muellMap.values()].filter(Boolean).length;
   const feiertage = getMuellData().filter(e => e.f).length;
@@ -2280,6 +2309,7 @@ window.addEventListener('keydown', e => {
 // ════════════════════════════════════════════════════════════════
 //  FIREBASE CONFIG  ---  HIER DEINE FIREBASE-DATEN EINTRAGEN
 // ════════════════════════════════════════════════════════════════
+const firebaseConfig = {
 const firebaseConfig = {
   apiKey: "AIzaSyCRmEIy2jzoOdVXdGEQQqu7ClnGHPtj5Wc",
   authDomain: "hausplan-bliesweg4a.firebaseapp.com",
