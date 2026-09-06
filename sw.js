@@ -1,4 +1,4 @@
-const CACHE = 'hausplan-v8';
+const CACHE = 'hausplan-v6';
 const ASSETS = ['./','./index.html','./manifest.json','./icons/icon-192.png','./icons/icon-512.png'];
 
 self.addEventListener('install', e => {
