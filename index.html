@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007AFF">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hausplan">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<title>Hausplan 2026 – Bliesweg 4a</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ─── Apple System Font Stack ─── */
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+
+  /* iOS 26 Light Palette */
+  --bg:           #F2F2F7;
+  --surface:      #FFFFFF;
+  --surface2:     #F2F2F7;
+  --grouped-hdr:  rgba(60,60,67,0.06);
+  --sep:          rgba(60,60,67,0.13);
+  --sep-strong:   rgba(60,60,67,0.22);
+  --label:        #000000;
+  --label2:       rgba(60,60,67,0.60);
+  --label3:       rgba(60,60,67,0.30);
+  --label4:       rgba(60,60,67,0.18);
+  --blue:         #007AFF;
+  --blue-bg:      rgba(0,122,255,0.10);
+  --green:        #34C759;
+  --green-bg:     rgba(52,199,89,0.10);
+  --red:          #FF3B30;
+  --red-bg:       rgba(255,59,48,0.10);
+  --orange:       #FF9500;
+  --orange-bg:    rgba(255,149,0,0.10);
+  --purple:       #AF52DE;
+  --fill:         rgba(120,120,128,0.12);
+  --fill2:        rgba(120,120,128,0.07);
+  --shadow:       0 1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06);
+  --shadow-lg:    0 4px 32px rgba(0,0,0,0.14);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--label);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.14); border-radius: 3px; }
+
+/* ─── Navigation Bar ─── */
+.nav {
+  position: sticky; top: 0; z-index: 400;
+  height: 52px;
+  background: rgba(242,242,247,0.88);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-bottom: 0.5px solid var(--sep-strong);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 12px;
+}
+.nav-title {
+  font-size: 17px; font-weight: 600; letter-spacing: -0.4px;
+  flex: 1;
+}
+.nav-title small {
+  font-size: 13px; font-weight: 400;
+  color: var(--label2); letter-spacing: -0.1px; margin-left: 4px;
+}
+
+/* ─── Buttons ─── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font); font-weight: 500; font-size: 15px;
+  border: none; cursor: pointer; transition: opacity 0.12s, transform 0.1s;
+  white-space: nowrap; letter-spacing: -0.2px;
+  border-radius: 20px; padding: 7px 14px; line-height: 1;
+}
+.btn:active { opacity: 0.75; transform: scale(0.97); }
+.btn-blue  { background: var(--blue); color: #fff; }
+.btn-glass { background: rgba(255,255,255,0.88); color: var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,0.13); }
+.btn-fill  { background: var(--fill); color: var(--label); }
+.btn-red   { background: var(--red-bg); color: var(--red); }
+.btn-sm    { font-size: 13px; padding: 6px 12px; }
+.icon-btn  {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--fill); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--label2); transition: background 0.12s;
+}
+.icon-btn:hover { background: rgba(120,120,128,0.2); color: var(--label); }
+
+/* ─── Tab Bar ─── */
+.tabs {
+  background: rgba(242,242,247,0.92);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-bottom: 0.5px solid var(--sep-strong);
+  display: flex; padding: 0 16px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 11px 14px; font-family: var(--font);
+  font-size: 14px; font-weight: 500; letter-spacing: -0.1px;
+  background: none; border: none; color: var(--label2);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color 0.13s; white-space: nowrap;
+}
+.tab:hover { color: var(--label); }
+.tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* ─── Page ─── */
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+.panel { display: none; } .panel.active { display: block; }
+
+/* ─── Section title ─── */
+.sec-title  { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 3px; }
+.sec-sub    { font-size: 14px; color: var(--label2); margin-bottom: 20px; letter-spacing: -0.1px; }
+
+/* ─── Card / List Card ─── */
+.card {
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.card + .card { margin-top: 12px; }
+.card-header {
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 600; letter-spacing: -0.1px;
+  color: var(--label2); text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--grouped-hdr);
+  border-bottom: 0.5px solid var(--sep);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px; min-height: 44px;
+  border-bottom: 0.5px solid var(--sep);
+  font-size: 15px;
+}
+.row:last-child { border-bottom: none; }
+.row:hover { background: var(--fill2); }
+
+/* ─── Legend ─── */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px 14px;
+  padding: 11px 16px;
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: var(--shadow); margin-bottom: 16px;
+  align-items: center;
+}
+.leg-item  { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; }
+.leg-dot   { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.leg-item.gone { opacity: 0.38; text-decoration: line-through; }
+
+/* ─── Notices ─── */
+.notice {
+  display: flex; gap: 9px; align-items: flex-start;
+  border-radius: var(--r-md); padding: 11px 14px;
+  font-size: 14px; margin-bottom: 16px; line-height: 1.45;
+}
+.notice-blue   { background: var(--blue-bg);   color: #004BB5; }
+.notice-orange { background: var(--orange-bg); color: #7A4400; }
+.notice b { font-weight: 600; }
+.notice svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ─── Upcoming cards ─── */
+.upcoming-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(155px,1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.uc {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 14px 15px; box-shadow: var(--shadow);
+  border-top: 3px solid transparent;
+}
+.uc-day   { font-size: 30px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
+.uc-month { font-size: 12px; font-weight: 500; color: var(--label2); margin-top: 1px; }
+.uc-type  { font-size: 13px; font-weight: 500; color: var(--label); margin-top: 9px; }
+.uc-party { font-size: 12px; font-weight: 600; margin-top: 3px; }
+.uc-ft    { font-size: 11px; color: var(--orange); margin-top: 2px; font-weight: 500; }
+
+/* ─── Badge ─── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; color: #fff;
+  letter-spacing: -0.1px; line-height: 1.4; white-space: nowrap;
+}
+.badge-sm { font-size: 11px; padding: 2px 7px; }
+
+/* ─── Status chips ─── */
+.chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; line-height: 1.5; white-space: nowrap;
+}
+.chip-green  { background: var(--green-bg); color: #1D6F36; }
+.chip-blue   { background: var(--blue-bg);  color: #004BB5; }
+.chip-red    { background: var(--red-bg);   color: #C0392B; }
+.chip-orange { background: var(--orange-bg);color: #7A4400; }
+
+/* ─── Month cards ─── */
+.months-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(295px,1fr)); gap: 12px; }
+.month-card  { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+.month-hdr   {
+  padding: 10px 16px; font-size: 15px; font-weight: 600; letter-spacing: -0.3px;
+  border-bottom: 0.5px solid var(--sep);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ev-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; border-bottom: 0.5px solid var(--sep);
+  font-size: 14px;
+}
+.ev-row:last-child { border-bottom: none; }
+.ev-row:hover { background: var(--fill2); }
+.ev-date  { min-width: 68px; color: var(--label2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ev-type  { flex: 1; font-weight: 500; }
+.ev-auto  { font-size: 12px; color: var(--label3); }
+.fmark    { color: var(--orange); font-weight: 700; }
+
+/* ─── Putz grid ─── */
+.putz-grid    { display: grid; grid-template-columns: repeat(auto-fill,minmax(265px,1fr)); gap: 12px; }
+.qtr-card     { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; }
+.qtr-hdr      {
+  padding: 10px 16px; font-size: 13px; font-weight: 600;
+  color: var(--label2); text-transform: uppercase; letter-spacing: 0.04em;
+  background: var(--grouped-hdr); border-bottom: 0.5px solid var(--sep);
+}
+.putz-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; border-bottom: 0.5px solid var(--sep);
+}
+.putz-row:last-child { border-bottom: none; }
+.putz-row:hover { background: var(--fill2); }
+.putz-row.now { background: var(--blue-bg); }
+.putz-row.now .putz-kw { color: var(--blue); font-weight: 700; }
+.putz-kw    { font-size: 12px; color: var(--label2); min-width: 36px; }
+.putz-dates { font-size: 13px; flex: 1; }
+
+/* ─── Party list (drag & drop) ─── */
+.parties-list { display: flex; flex-direction: column; gap: 8px; max-width: 580px; margin-bottom: 14px; }
+.prow {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 13px 14px; display: flex; align-items: center; gap: 11px;
+  box-shadow: var(--shadow); cursor: grab; user-select: none;
+  transition: box-shadow 0.18s, opacity 0.18s, transform 0.15s;
+}
+.prow:active { cursor: grabbing; }
+.prow.dragging { opacity: 0.38; transform: scale(0.97); box-shadow: 0 8px 28px rgba(0,0,0,0.14); }
+.prow.dragover { box-shadow: 0 0 0 2px var(--blue), var(--shadow); }
+.prow.gone    { opacity: 0.50; }
+.drag-grip { color: var(--label3); flex-shrink: 0; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0;
+  letter-spacing: -0.3px;
+}
+.pinfo     { flex: 1; min-width: 0; }
+.pname     { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pdetail   { font-size: 12px; color: var(--label2); margin-top: 2px; }
+.pnum      { font-size: 11px; color: var(--label3); background: var(--fill); padding: 2px 7px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+.add-party {
+  background: var(--surface); border-radius: var(--r-lg);
+  border: 1.5px dashed rgba(0,122,255,0.3);
+  padding: 13px 16px; display: flex; align-items: center; gap: 10px;
+  color: var(--blue); cursor: pointer; font-size: 15px; font-weight: 500;
+  font-family: var(--font); box-shadow: var(--shadow);
+  transition: background 0.13s, border-color 0.13s;
+  width: 100%; max-width: 580px;
+}
+.add-party:hover { background: var(--blue-bg); border-color: var(--blue); }
+
+/* ─── Rotation preview ─── */
+.rot-preview {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 12px 16px; box-shadow: var(--shadow); margin-bottom: 14px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}
+.rot-label { font-size: 13px; font-weight: 600; color: var(--label2); margin-right: 2px; white-space: nowrap; }
+.rot-arrow { color: var(--label3); font-size: 13px; font-weight: 500; }
+
+/* ─── Stats ─── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(155px,1fr)); gap: 10px; margin-bottom: 22px; }
+.stat-card  { background: var(--surface); border-radius: var(--r-lg); padding: 16px 16px 14px; box-shadow: var(--shadow); }
+.stat-icon  { color: var(--blue); margin-bottom: 8px; }
+.stat-val   { font-size: 30px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; }
+.stat-lbl   { font-size: 13px; color: var(--label2); margin-top: 4px; font-weight: 500; }
+.fair-card  { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+.fair-hdr   { padding: 10px 16px; font-size: 12px; font-weight: 600; color: var(--label2); text-transform: uppercase; letter-spacing: 0.05em; background: var(--grouped-hdr); border-bottom: 0.5px solid var(--sep); }
+.fair-row   { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 0.5px solid var(--sep); }
+.fair-row:last-child { border-bottom: none; }
+.fair-row:hover { background: var(--fill2); }
+.fair-name  { min-width: 130px; }
+.fair-cnt   { font-size: 15px; font-weight: 700; min-width: 28px; text-align: right; letter-spacing: -0.5px; }
+.bar-wrap   { flex: 1; height: 5px; background: var(--fill); border-radius: 3px; overflow: hidden; }
+.bar-fill   { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+/* ─── Week banner ─── */
+.week-banner {
+  background: var(--surface); border-radius: var(--r-lg);
+  padding: 13px 16px; box-shadow: var(--shadow);
+  display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+  border-left: 3px solid var(--blue);
+}
+.wb-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+.wb-sub   { font-size: 13px; color: var(--label2); margin-top: 2px; }
+
+/* ─── Modal – bottom sheet ─── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.40);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  z-index: 1000; align-items: flex-end; justify-content: center;
+}
+.overlay.open { display: flex; }
+.sheet {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 540px;
+  max-height: 92vh; overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.26s cubic-bezier(0.32,0.72,0,1);
+  padding-bottom: 24px;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-handle { width: 36px; height: 4px; background: var(--fill); border-radius: 2px; margin: 10px auto; cursor: pointer; }
+.sheet-title  { font-size: 18px; font-weight: 700; letter-spacing: -0.4px; padding: 6px 20px 0; }
+.sheet-body   { padding: 16px 20px 0; }
+.sheet-foot   { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 20px 0; border-top: 0.5px solid var(--sep); margin-top: 4px; }
+
+/* ─── Form ─── */
+.f-section { margin-bottom: 20px; }
+.f-section-lbl { font-size: 12px; font-weight: 600; color: var(--label2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.f-grp { margin-bottom: 12px; }
+.f-lbl { font-size: 13px; font-weight: 500; color: var(--label2); margin-bottom: 5px; display: block; }
+.f-in  {
+  width: 100%; padding: 10px 12px; border-radius: var(--r-md);
+  border: 1px solid rgba(60,60,67,0.2); background: var(--bg);
+  font-family: var(--font); font-size: 15px; color: var(--label);
+  -webkit-appearance: none; transition: border-color 0.14s, box-shadow 0.14s;
+}
+.f-in:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,122,255,0.14); }
+.f-hint { font-size: 12px; color: var(--label3); margin-top: 4px; }
+.color-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.cswatch {
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  border: 2.5px solid transparent; transition: transform 0.13s;
+}
+.cswatch:hover { transform: scale(1.15); }
+.cswatch.sel   { border-color: rgba(0,0,0,0.55); transform: scale(1.08); }
+.date-note { background: var(--blue-bg); border-radius: var(--r-sm); padding: 8px 11px; font-size: 12px; color: #004BB5; margin-top: 8px; display: none; }
+
+/* ─── Toast ─── */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(8px);
+  background: rgba(28,28,30,0.92); color: #fff; padding: 9px 18px;
+  border-radius: 20px; font-size: 14px; font-weight: 500;
+  backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+  opacity: 0; transition: opacity 0.22s, transform 0.22s;
+  z-index: 9999; pointer-events: none; display: flex; align-items: center; gap: 6px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+
+
+/* ─── Plan preview ─── */
+.doc-wrap {
+  background: linear-gradient(180deg, #f7f7fb 0%, #eef2f7 100%);
+  border-radius: 28px; padding: 18px; box-shadow: var(--shadow);
+}
+.doc-sheet {
+  background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 14px 40px rgba(0,0,0,0.08);
+  border: 1px solid rgba(15,23,42,0.06); overflow: hidden; position: relative;
+}
+.doc-sheet::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at top right, rgba(0,122,255,0.10), transparent 30%), radial-gradient(circle at bottom left, rgba(52,199,89,0.08), transparent 25%);
+}
+.doc-sheet > * { position: relative; z-index: 1; }
+.doc-head {
+  display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding-bottom:16px; border-bottom:1px solid rgba(15,23,42,0.08); margin-bottom:16px;
+}
+.doc-title { font-size:30px; font-weight:800; line-height:1.02; letter-spacing:-1px; }
+.doc-sub { font-size:14px; color:#667085; margin-top:6px; }
+.doc-meta {
+  min-width:170px; background:linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); border:1px solid rgba(15,23,42,0.08); border-radius:18px; padding:12px 14px;
+}
+.doc-meta-lbl { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:700; }
+.doc-meta-val { font-size:16px; font-weight:700; margin-top:3px; }
+.doc-grid2 { display:grid; grid-template-columns:1.15fr .85fr; gap:12px; margin-bottom:14px; }
+.doc-card {
+  background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:20px; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,0.05);
+}
+.doc-card-h { padding:11px 14px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%); border-bottom:1px solid rgba(15,23,42,0.08); }
+.doc-card-b { padding:14px; }
+.doc-chips { display:flex; flex-wrap:wrap; gap:10px 12px; }
+.doc-chip-wrap { display:flex; flex-direction:column; gap:4px; }
+.doc-chip { display:inline-flex; width:fit-content; padding:6px 10px; border-radius:999px; color:#fff; font-size:12px; font-weight:700; line-height:1; }
+.doc-chip-sub { font-size:11px; color:#667085; padding-left:2px; }
+.doc-rotation { font-size:15px; font-weight:600; line-height:1.45; letter-spacing:-0.2px; }
+.doc-notes { display:grid; gap:8px; font-size:13px; color:#334155; margin-top:12px; }
+.doc-sec-title { font-size:20px; font-weight:800; letter-spacing:-0.6px; margin:18px 0 3px; }
+.doc-sec-sub { font-size:13px; color:#667085; margin-bottom:12px; }
+.doc-table { width:100%; border-collapse:collapse; }
+.doc-table th { text-align:left; padding:10px 12px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; background:#f8fafc; border-bottom:1px solid rgba(15,23,42,0.10); }
+.doc-table td { padding:10px 12px; font-size:13px; border-bottom:1px solid rgba(15,23,42,0.08); vertical-align:middle; }
+.doc-table tr:nth-child(even) td { background:#fcfdff; }
+.doc-center { text-align:center; }
+.doc-pill { display:inline-flex; align-items:center; padding:5px 9px; border-radius:999px; color:#fff; font-size:11px; font-weight:700; line-height:1; }
+.doc-note { display:inline-flex; margin-left:6px; font-size:10px; font-weight:700; color:#9a6700; background:#fff4d6; border:1px solid #f5d48a; border-radius:999px; padding:3px 7px; }
+.doc-months { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+.doc-month { border:1px solid rgba(15,23,42,0.08); border-radius:18px; overflow:hidden; background:#fff; break-inside:avoid; }
+.doc-month-h { display:flex; justify-content:space-between; align-items:center; padding:11px 14px; background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%); border-bottom:1px solid rgba(15,23,42,0.08); font-size:13px; font-weight:800; }
+.doc-month-b { padding:6px 0; }
+.doc-mrow { display:grid; grid-template-columns:68px 1fr auto; gap:10px; align-items:center; padding:8px 14px; border-bottom:1px solid rgba(15,23,42,0.06); font-size:12px; }
+.doc-mrow:last-child { border-bottom:none; }
+.doc-mrow.auto { background:#fafafa; }
+.doc-date { color:#64748b; font-weight:700; font-variant-numeric:tabular-nums; }
+.doc-type { color:#0f172a; }
+.doc-party { text-align:right; }
+.doc-muted { color:#94a3b8; font-weight:600; font-size:11px; }
+.doc-stats { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+.doc-stat-line { display:grid; grid-template-columns:110px 1fr 28px; gap:10px; align-items:center; margin-bottom:10px; }
+.doc-stat-line:last-child { margin-bottom:0; }
+.doc-stat-name { font-size:12px; font-weight:700; }
+.doc-stat-bar { height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+.doc-stat-fill { height:100%; border-radius:999px; }
+.doc-stat-value { font-size:12px; font-weight:800; text-align:right; }
+.doc-foot { margin-top:12px; text-align:right; font-size:11px; color:#64748b; }
+@media (max-width: 820px) {
+  .doc-grid2, .doc-months, .doc-stats { grid-template-columns:1fr; }
+  .doc-head { flex-direction:column; }
+  .doc-wrap { padding:12px; }
+  .doc-sheet { padding:16px; }
+  .doc-title { font-size:24px; }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .page { padding: 16px 14px; }
+  .months-grid, .putz-grid { grid-template-columns: 1fr; }
+  .f-row { grid-template-columns: 1fr; }
+  .nav-title small { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-title">Bliesweg 4a <small>· Hausplan 2026</small></div>
+  <button class="btn btn-fill btn-sm" onclick="openIcsModal()" title="In Kalender exportieren">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Kalender
+  </button>
+  <button class="btn btn-glass btn-sm" id="loginBtn" onclick="openLogin()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span id="loginBtnLabel">Admin</span>
+  </button>
+  <button class="btn btn-glass btn-sm" onclick="exportPDF()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    PDF sichern
+  </button>
+  <button class="btn btn-blue btn-sm" id="navAddPartyBtn" onclick="openAdd()" style="display:none">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Partei
+  </button>
+</nav>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('plan',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Plan
+  </button>
+  <button class="tab" onclick="switchTab('overview',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    Übersicht
+  </button>
+  <button class="tab" onclick="switchTab('putzplan',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    Putzplan
+  </button>
+  <button class="tab" onclick="switchTab('muellplan',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Mülltonnen
+  </button>
+  <button class="tab" onclick="switchTab('parteien',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Parteien
+  </button>
+  <button class="tab" onclick="switchTab('statistik',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Statistik
+  </button>
+</div>
+
+<main class="page">
+
+<!-- OVERVIEW -->
+<div class="panel active" id="panel-plan">
+  <div class="sec-title">Hausplan 2026</div>
+  <div class="sec-sub">Erstansicht im PDF-Stil · danach kannst du alles bearbeiten</div>
+  <div id="planPreview"></div>
+</div>
+
+<div class="panel" id="panel-overview">
+  <div class="sec-title">Nächste Termine</div>
+  <div class="sec-sub">Anstehende Aufgaben · Nur Gelbe Tonne und Papiertonne rausstellen</div>
+  <div class="upcoming-grid" id="upcomingGrid"></div>
+  <div class="week-banner" id="weekBanner">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <div>
+      <div class="wb-title" id="wbTitle"></div>
+      <div class="wb-sub"   id="wbSub"></div>
+    </div>
+  </div>
+  <div class="notice notice-blue">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Restmüll und Biomüll werden automatisch abgeholt und müssen <b>nicht</b> rausgestellt werden. &nbsp;<span style="color:var(--orange)">*</span> = Feiertagsabweichung</span>
+  </div>
+  <div class="legend" id="lgOverview"></div>
+</div>
+
+<!-- PUTZPLAN -->
+<div class="panel" id="panel-putzplan">
+  <div class="sec-title">Putzplan Treppenhaus</div>
+  <div class="sec-sub" id="putzSub"></div>
+  <div id="putzBanner"></div>
+  <div class="legend" id="lgPutz"></div>
+  <div class="putz-grid" id="putzGrid"></div>
+</div>
+
+<!-- MÜLLTONNEN -->
+<div class="panel" id="panel-muellplan">
+  <div class="sec-title">Mülltonnenplan 2026</div>
+  <div class="sec-sub">Alle Abfuhrtermine · Nur markierte Tonnen rausstellen</div>
+  <div class="legend" id="lgMuell"></div>
+  <div class="months-grid" id="monthsGrid"></div>
+</div>
+
+<!-- PARTEIEN -->
+<div class="panel" id="panel-parteien">
+  <div class="sec-title">Mietparteien</div>
+  <div class="sec-sub">Reihenfolge per Drag &amp; Drop · Ein-/Austrittsdaten pflegen</div>
+  <div class="rot-preview" id="rotPreview"></div>
+  <div class="parties-list" id="partiesList"></div>
+  <button class="add-party" id="addPartyBtn" onclick="openAdd()" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Neue Mietpartei hinzufügen
+  </button>
+  <div class="notice notice-blue" id="viewerNotice" style="max-width:580px">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Nur Admins können Mietparteien bearbeiten oder die Reihenfolge ändern. Melde dich oben rechts als Admin an.</span>
+  </div>
+</div>
+
+<!-- STATISTIK -->
+<div class="panel" id="panel-statistik">
+  <div class="sec-title">Fairness &amp; Statistik</div>
+  <div class="sec-sub">Übersicht aller Zuständigkeiten 2026</div>
+  <div class="stats-grid" id="statsGrid"></div>
+  <div style="font-size:12px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Putzplan · Einsätze je Partei</div>
+  <div class="fair-card" id="putzFairness"></div>
+  <div style="font-size:12px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;margin-top:20px">Mülltonnen · Einsätze je Partei</div>
+  <div class="fair-card" id="muellFairness"></div>
+</div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg">Gespeichert</span>
+</div>
+
+<!-- Modal Sheet -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-handle" onclick="closeModal()"></div>
+    <div class="sheet-title" id="sheetTitle">Neue Partei</div>
+    <div class="sheet-body">
+
+      <div class="f-section">
+        <div class="f-section-lbl">Grunddaten</div>
+        <div class="f-row">
+          <div class="f-grp">
+            <label class="f-lbl">Name</label>
+            <input class="f-in" id="fName" placeholder="z. B. Müller" autocomplete="off"/>
+          </div>
+          <div class="f-grp">
+            <label class="f-lbl">Wohnung / Stockwerk</label>
+            <input class="f-in" id="fFloor" placeholder="z. B. EG links" autocomplete="off"/>
+          </div>
+        </div>
+        <div class="f-grp">
+          <label class="f-lbl">Farbe</label>
+          <div class="color-grid" id="colorGrid"></div>
+        </div>
+      </div>
+
+      <div class="f-section">
+        <div class="f-section-lbl">Zeitraum der Zuständigkeit</div>
+        <div class="f-row">
+          <div class="f-grp">
+            <label class="f-lbl">Eintritt ab</label>
+            <input class="f-in" id="fFrom" type="date" oninput="updateNote()"/>
+            <div class="f-hint">Leer = von Beginn an</div>
+          </div>
+          <div class="f-grp">
+            <label class="f-lbl">Austritt ab</label>
+            <input class="f-in" id="fUntil" type="date" oninput="updateNote()"/>
+            <div class="f-hint">Leer = dauerhaft aktiv</div>
+          </div>
+        </div>
+        <div class="date-note" id="dateNote"></div>
+      </div>
+
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-red" id="delBtn" onclick="delParty()" style="display:none;margin-right:auto">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        Löschen
+      </button>
+      <button class="btn btn-fill" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-blue" onclick="saveParty()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Login Modal -->
+<div class="overlay" id="loginOverlay">
+  <div class="sheet">
+    <div class="sheet-handle" onclick="closeLoginModal()"></div>
+    <div class="sheet-title" id="loginSheetTitle">Admin-Login</div>
+    <div class="sheet-body">
+      <div id="loginFormWrap">
+        <div class="f-grp">
+          <label class="f-lbl">E-Mail</label>
+          <input class="f-in" id="loginEmail" type="email" placeholder="admin@example.com" autocomplete="username"/>
+        </div>
+        <div class="f-grp">
+          <label class="f-lbl">Passwort</label>
+          <input class="f-in" id="loginPassword" type="password" placeholder="Passwort" autocomplete="current-password"/>
+        </div>
+        <div class="f-hint" id="loginError" style="color:var(--red);display:none"></div>
+      </div>
+      <div id="loggedInWrap" style="display:none">
+        <div class="notice notice-blue">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Angemeldet als <b id="loggedInEmail"></b> — Admin-Rechte aktiv.</span>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-fill" onclick="closeLoginModal()">Schließen</button>
+      <button class="btn btn-red" id="logoutBtn" onclick="doLogout()" style="display:none">Abmelden</button>
+      <button class="btn btn-blue" id="loginSubmitBtn" onclick="doLogin()">Anmelden</button>
+    </div>
+  </div>
+</div>
+
+<!-- ICS / Kalender Modal -->
+<div class="overlay" id="icsOverlay">
+  <div class="sheet">
+    <div class="sheet-handle" onclick="closeIcsModal()"></div>
+    <div class="sheet-title">In Kalender exportieren</div>
+    <div class="sheet-body">
+      <div class="f-section-lbl">Was möchtest du exportieren?</div>
+      <div class="parties-list" style="max-width:100%">
+        <div class="prow" onclick="downloadIcs('putz')" style="cursor:pointer">
+          <div class="avatar" style="background:var(--blue)">🧹</div>
+          <div class="pinfo">
+            <div class="pname">Putzplan Treppenhaus</div>
+            <div class="pdetail">Alle Putzwochen 2026 als Kalendertermine</div>
+          </div>
+        </div>
+        <div class="prow" onclick="downloadIcs('muell')" style="cursor:pointer">
+          <div class="avatar" style="background:var(--orange)">🗑️</div>
+          <div class="pinfo">
+            <div class="pname">Mülltonnenplan</div>
+            <div class="pdetail">Nur Gelbe Tonne &amp; Papiertonne (aktiv rausstellen)</div>
+          </div>
+        </div>
+        <div class="prow" onclick="downloadIcs('all')" style="cursor:pointer">
+          <div class="avatar" style="background:var(--green)">📅</div>
+          <div class="pinfo">
+            <div class="pname">Beides</div>
+            <div class="pdetail">Putzplan + Mülltonnen in einer Datei</div>
+          </div>
+        </div>
+      </div>
+      <div class="f-hint">Die .ics-Datei kann in Apple Kalender, Google Kalender oder Outlook importiert werden.</div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-fill" onclick="closeIcsModal()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  EXACT DATA FROM PDF – hardcoded, not recalculated
+// ════════════════════════════════════════════════════════════════
+
+const PUTZ_PDF = [
+  // Q1
+  {kw:2,  dates:'05.01.–11.01.', iso:'2026-01-05', pid:'dunár'},
+  {kw:4,  dates:'19.01.–25.01.', iso:'2026-01-19', pid:'simmer'},
+  {kw:6,  dates:'02.02.–08.02.', iso:'2026-02-02', pid:'ilgen'},
+  {kw:8,  dates:'16.02.–22.02.', iso:'2026-02-16', pid:'deeg'},
+  {kw:10, dates:'02.03.–08.03.', iso:'2026-03-02', pid:'dunár'},
+  {kw:12, dates:'16.03.–22.03.', iso:'2026-03-16', pid:'simmer'},
+  {kw:14, dates:'30.03.–05.04.', iso:'2026-03-30', pid:'ilgen'},
+  // Q2
+  {kw:16, dates:'13.04.–19.04.', iso:'2026-04-13', pid:'deeg'},
+  {kw:18, dates:'27.04.–03.05.', iso:'2026-04-27', pid:'dunár'},
+  {kw:20, dates:'11.05.–17.05.', iso:'2026-05-11', pid:'simmer'},
+  {kw:22, dates:'25.05.–31.05.', iso:'2026-05-25', pid:'ilgen'},
+  {kw:24, dates:'08.06.–14.06.', iso:'2026-06-08', pid:'deeg'},
+  {kw:26, dates:'22.06.–28.06.', iso:'2026-06-22', pid:'dunár'},
+  {kw:28, dates:'06.07.–12.07.', iso:'2026-07-06', pid:'simmer'},
+  // Q3
+  {kw:30, dates:'20.07.–26.07.', iso:'2026-07-20', pid:'ilgen'},
+  {kw:32, dates:'03.08.–09.08.', iso:'2026-08-03', pid:'deeg'},
+  {kw:34, dates:'17.08.–23.08.', iso:'2026-08-17', pid:'dunár'},
+  {kw:36, dates:'31.08.–06.09.', iso:'2026-08-31', pid:'simmer'},
+  {kw:38, dates:'14.09.–20.09.', iso:'2026-09-14', pid:'ilgen'},
+  {kw:40, dates:'28.09.–04.10.', iso:'2026-09-28', pid:'deeg'},
+  {kw:42, dates:'12.10.–18.10.', iso:'2026-10-12', pid:'dunár'},
+  // Q4
+  {kw:44, dates:'26.10.–01.11.', iso:'2026-10-26', pid:'simmer'},
+  {kw:46, dates:'09.11.–15.11.', iso:'2026-11-09', pid:'ilgen'},
+  {kw:48, dates:'23.11.–29.11.', iso:'2026-11-23', pid:'deeg'},
+  {kw:50, dates:'07.12.–13.12.', iso:'2026-12-07', pid:'dunár'},
+  {kw:52, dates:'21.12.–27.12.', iso:'2026-12-21', pid:'simmer'},
+];
+
+const MUELL_PDF = [
+  // Januar
+  {m:0,d:'08.01.',type:'Restmüll',   pid:null},
+  {m:0,d:'08.01.',type:'Biomüll',    pid:null},
+  {m:0,d:'14.01.',type:'Gelbe Tonne',pid:'deeg'},
+  {m:0,d:'15.01.',type:'Restmüll',   pid:null},
+  {m:0,d:'19.01.',type:'Papiertonne',pid:'ilgen'},
+  {m:0,d:'22.01.',type:'Restmüll',   pid:null},
+  {m:0,d:'22.01.',type:'Biomüll',    pid:null},
+  {m:0,d:'28.01.',type:'Gelbe Tonne',pid:'simmer'},
+  {m:0,d:'29.01.',type:'Restmüll',   pid:null},
+  // Februar
+  {m:1,d:'05.02.',type:'Restmüll',   pid:null},
+  {m:1,d:'05.02.',type:'Biomüll',    pid:null},
+  {m:1,d:'11.02.',type:'Gelbe Tonne',pid:'dunár'},
+  {m:1,d:'12.02.',type:'Restmüll',   pid:null},
+  {m:1,d:'16.02.',type:'Papiertonne',pid:'deeg'},
+  {m:1,d:'19.02.',type:'Restmüll',   pid:null},
+  {m:1,d:'19.02.',type:'Biomüll',    pid:null},
+  {m:1,d:'25.02.',type:'Gelbe Tonne',pid:'ilgen'},
+  {m:1,d:'26.02.',type:'Restmüll',   pid:null},
+  // März
+  {m:2,d:'05.03.',type:'Restmüll',   pid:null},
+  {m:2,d:'05.03.',type:'Biomüll',    pid:null},
+  {m:2,d:'11.03.',type:'Gelbe Tonne',pid:'deeg'},
+  {m:2,d:'12.03.',type:'Restmüll',   pid:null},
+  {m:2,d:'16.03.',type:'Papiertonne',pid:'simmer'},
+  {m:2,d:'19.03.',type:'Restmüll',   pid:null},
+  {m:2,d:'19.03.',type:'Biomüll',    pid:null},
+  {m:2,d:'25.03.',type:'Gelbe Tonne',pid:'dunár'},
+  {m:2,d:'26.03.',type:'Restmüll',   pid:null},
+  // April
+  {m:3,d:'02.04.',type:'Restmüll',   pid:null},
+  {m:3,d:'02.04.',type:'Biomüll',    pid:null},
+  {m:3,d:'09.04.',type:'Gelbe Tonne',pid:'ilgen',f:true},
+  {m:3,d:'10.04.',type:'Restmüll',   pid:null,f:true},
+  {m:3,d:'13.04.',type:'Papiertonne',pid:'dunár'},
+  {m:3,d:'16.04.',type:'Restmüll',   pid:null},
+  {m:3,d:'16.04.',type:'Biomüll',    pid:null},
+  {m:3,d:'22.04.',type:'Gelbe Tonne',pid:'deeg'},
+  {m:3,d:'23.04.',type:'Restmüll',   pid:null},
+  {m:3,d:'30.04.',type:'Restmüll',   pid:null},
+  {m:3,d:'30.04.',type:'Biomüll',    pid:null},
+  // Mai
+  {m:4,d:'06.05.',type:'Gelbe Tonne',pid:'simmer'},
+  {m:4,d:'07.05.',type:'Restmüll',   pid:null},
+  {m:4,d:'11.05.',type:'Papiertonne',pid:'ilgen'},
+  {m:4,d:'15.05.',type:'Restmüll',   pid:null,f:true},
+  {m:4,d:'15.05.',type:'Biomüll',    pid:null,f:true},
+  {m:4,d:'20.05.',type:'Gelbe Tonne',pid:'dunár'},
+  {m:4,d:'21.05.',type:'Restmüll',   pid:null},
+  {m:4,d:'29.05.',type:'Restmüll',   pid:null,f:true},
+  {m:4,d:'29.05.',type:'Biomüll',    pid:null,f:true},
+  // Juni
+  {m:5,d:'03.06.',type:'Gelbe Tonne',pid:'ilgen'},
+  {m:5,d:'05.06.',type:'Restmüll',   pid:null,f:true},
+  {m:5,d:'08.06.',type:'Papiertonne',pid:'deeg'},
+  {m:5,d:'11.06.',type:'Restmüll',   pid:null},
+  {m:5,d:'11.06.',type:'Biomüll',    pid:null},
+  {m:5,d:'17.06.',type:'Gelbe Tonne',pid:'simmer'},
+  {m:5,d:'18.06.',type:'Restmüll',   pid:null},
+  {m:5,d:'25.06.',type:'Restmüll',   pid:null},
+  {m:5,d:'25.06.',type:'Biomüll',    pid:null},
+  // Juli
+  {m:6,d:'01.07.',type:'Gelbe Tonne',pid:'dunár'},
+  {m:6,d:'02.07.',type:'Restmüll',   pid:null},
+  {m:6,d:'06.07.',type:'Papiertonne',pid:'simmer'},
+  {m:6,d:'09.07.',type:'Restmüll',   pid:null},
+  {m:6,d:'09.07.',type:'Biomüll',    pid:null},
+  {m:6,d:'15.07.',type:'Gelbe Tonne',pid:'ilgen'},
+  {m:6,d:'16.07.',type:'Restmüll',   pid:null},
+  {m:6,d:'23.07.',type:'Restmüll',   pid:null},
+  {m:6,d:'23.07.',type:'Biomüll',    pid:null},
+  {m:6,d:'29.07.',type:'Gelbe Tonne',pid:'deeg'},
+  {m:6,d:'30.07.',type:'Restmüll',   pid:null},
+  {m:6,d:'03.08.',type:'Papiertonne',pid:'dunár'},
+  // August
+  {m:7,d:'06.08.',type:'Restmüll',   pid:null},
+  {m:7,d:'06.08.',type:'Biomüll',    pid:null},
+  {m:7,d:'12.08.',type:'Gelbe Tonne',pid:'simmer'},
+  {m:7,d:'13.08.',type:'Restmüll',   pid:null},
+  {m:7,d:'20.08.',type:'Restmüll',   pid:null},
+  {m:7,d:'20.08.',type:'Biomüll',    pid:null},
+  {m:7,d:'26.08.',type:'Gelbe Tonne',pid:'dunár'},
+  {m:7,d:'27.08.',type:'Restmüll',   pid:null},
+  {m:7,d:'31.08.',type:'Papiertonne',pid:'ilgen'},
+  // September
+  {m:8,d:'03.09.',type:'Restmüll',   pid:null},
+  {m:8,d:'03.09.',type:'Biomüll',    pid:null},
+  {m:8,d:'09.09.',type:'Gelbe Tonne',pid:'deeg'},
+  {m:8,d:'10.09.',type:'Restmüll',   pid:null},
+  {m:8,d:'17.09.',type:'Restmüll',   pid:null},
+  {m:8,d:'17.09.',type:'Biomüll',    pid:null},
+  {m:8,d:'23.09.',type:'Gelbe Tonne',pid:'simmer'},
+  {m:8,d:'24.09.',type:'Restmüll',   pid:null},
+  {m:8,d:'28.09.',type:'Papiertonne',pid:'deeg'},
+  // Oktober
+  {m:9,d:'01.10.',type:'Restmüll',   pid:null},
+  {m:9,d:'01.10.',type:'Biomüll',    pid:null},
+  {m:9,d:'07.10.',type:'Gelbe Tonne',pid:'dunár'},
+  {m:9,d:'08.10.',type:'Restmüll',   pid:null},
+  {m:9,d:'15.10.',type:'Restmüll',   pid:null},
+  {m:9,d:'15.10.',type:'Biomüll',    pid:null},
+  {m:9,d:'21.10.',type:'Gelbe Tonne',pid:'ilgen'},
+  {m:9,d:'22.10.',type:'Restmüll',   pid:null},
+  {m:9,d:'26.10.',type:'Papiertonne',pid:'simmer'},
+  {m:9,d:'29.10.',type:'Restmüll',   pid:null},
+  {m:9,d:'29.10.',type:'Biomüll',    pid:null},
+  // November
+  {m:10,d:'04.11.',type:'Gelbe Tonne',pid:'deeg'},
+  {m:10,d:'05.11.',type:'Restmüll',   pid:null},
+  {m:10,d:'12.11.',type:'Restmüll',   pid:null},
+  {m:10,d:'12.11.',type:'Biomüll',    pid:null},
+  {m:10,d:'18.11.',type:'Gelbe Tonne',pid:'simmer'},
+  {m:10,d:'19.11.',type:'Restmüll',   pid:null},
+  {m:10,d:'23.11.',type:'Papiertonne',pid:'dunár'},
+  {m:10,d:'26.11.',type:'Restmüll',   pid:null},
+  {m:10,d:'26.11.',type:'Biomüll',    pid:null},
+  {m:10,d:'02.12.',type:'Gelbe Tonne',pid:'ilgen'},
+  // Dezember
+  {m:11,d:'03.12.',type:'Restmüll',   pid:null},
+  {m:11,d:'10.12.',type:'Restmüll',   pid:null},
+  {m:11,d:'10.12.',type:'Biomüll',    pid:null},
+  {m:11,d:'16.12.',type:'Gelbe Tonne',pid:'deeg'},
+  {m:11,d:'17.12.',type:'Restmüll',   pid:null},
+  {m:11,d:'19.12.',type:'Papiertonne',pid:'ilgen',f:true},
+  {m:11,d:'23.12.',type:'Restmüll',   pid:null,f:true},
+  {m:11,d:'23.12.',type:'Biomüll',    pid:null,f:true},
+  {m:11,d:'30.12.',type:'Gelbe Tonne',pid:'simmer'},
+  {m:11,d:'31.12.',type:'Restmüll',   pid:null},
+];
+
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const PALETTE = ['#FF3B30','#FF9500','#007AFF','#34C759','#AF52DE','#5AC8FA','#FF6B35','#636366','#00C7BE','#FF2D55'];
+
+const DEFAULTS = [
+  {id:'dunár', name:'Dunár',        floor:'OG', color:'#FF3B30', order:0, activeFrom:'', activeUntil:''},
+  {id:'simmer',name:'Simmer',       floor:'OG', color:'#FF9500', order:1, activeFrom:'', activeUntil:''},
+  {id:'ilgen', name:'Ilgen',        floor:'EG', color:'#007AFF', order:2, activeFrom:'', activeUntil:''},
+  {id:'deeg',  name:'Deeg/Antocci', floor:'EG', color:'#34C759', order:3, activeFrom:'', activeUntil:''},
+];
+
+const DEFAULT_ORDER = DEFAULTS.map(p => p.id);
+
+// ════════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════════
+
+let parties;
+try {
+  const s = localStorage.getItem('hausplan_v4');
+  parties = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULTS));
+} catch (e) {
+  parties = JSON.parse(JSON.stringify(DEFAULTS));
+}
+
+let editId = null;
+let selColor = '#AF52DE';
+let dragIdx = null;
+let toastTimer = null;
+
+normalizeParties();
+
+// ════════════════════════════════════════════════════════════════
+//  SAVE / TOAST
+// ════════════════════════════════════════════════════════════════
+
+function showToast(msg = 'Gespeichert') {
+  const t = document.getElementById('toast');
+  const m = document.getElementById('toastMsg');
+  if (m) m.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function save(msg = 'Gespeichert') {
+  try {
+    localStorage.setItem('hausplan_v4', JSON.stringify(parties));
+  } catch (e) {}
+  showToast(msg);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════════════
+
+function normalizeParties() {
+  if (!Array.isArray(parties) || !parties.length) {
+    parties = JSON.parse(JSON.stringify(DEFAULTS));
+  }
+
+  parties = parties.map((p, i) => ({
+    id: String(p.id || `partei-${i + 1}`),
+    name: String(p.name || `Partei ${i + 1}`),
+    floor: String(p.floor || ''),
+    color: p.color || PALETTE[i % PALETTE.length],
+    order: Number.isFinite(+p.order) ? +p.order : i,
+    activeFrom: p.activeFrom || '',
+    activeUntil: p.activeUntil || ''
+  }));
+
+  const seen = new Set();
+  parties = parties.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  });
+
+  parties.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'de'));
+  parties.forEach((p, i) => p.order = i);
+}
+
+function esc(s = '') {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+}
+
+function P(id) {
+  return parties.find(p => p.id === id) || null;
+}
+
+function sortedParties() {
+  return [...parties].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'de'));
+}
+
+function parseD(s) {
+  if (!s) return null;
+  const d = new Date(`${s}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function dateToIso(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function fmt(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function todayIso() {
+  return dateToIso(new Date());
+}
+
+function addDaysIso(iso, days) {
+  const d = parseD(iso);
+  if (!d) return iso;
+  d.setDate(d.getDate() + days);
+  return dateToIso(d);
+}
+
+function getKW(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function muellIso(e) {
+  const day = String(parseInt(e.d, 10)).padStart(2, '0');
+  return `2026-${String(e.m + 1).padStart(2, '0')}-${day}`;
+}
+
+function isActiveOn(p, iso) {
+  if (p.activeFrom && iso < p.activeFrom) return false;
+  if (p.activeUntil && iso >= p.activeUntil) return false;
+  return true;
+}
+
+function statusOf(p) {
+  const now = todayIso();
+  if (p.activeUntil && now >= p.activeUntil) {
+    return { label: 'Ausgezogen', cls: 'chip-red' };
+  }
+  if (p.activeFrom && now < p.activeFrom) {
+    return { label: `Ab ${fmt(p.activeFrom)}`, cls: 'chip-blue' };
+  }
+  return { label: 'Aktiv', cls: 'chip-green' };
+}
+
+function badge(id, sm = false) {
+  const p = P(id);
+  if (!p) return `<span style="font-size:12px;color:var(--label3)">–</span>`;
+  return `<span class="badge${sm ? ' badge-sm' : ''}" style="background:${p.color}">${esc(p.name)}</span>`;
+}
+
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '??';
+  return parts.slice(0, 2).map(x => x[0]).join('').toUpperCase();
+}
+
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((x, i) => x === b[i]);
+}
+
+function activeIds(iso) {
+  return sortedParties().filter(p => isActiveOn(p, iso)).map(p => p.id);
+}
+
+function isStaticLineup(iso) {
+  return arraysEqual(activeIds(iso), DEFAULT_ORDER);
+}
+
+function nextAfterReference(refId, activeList) {
+  if (!activeList.length) return null;
+
+  const direct = activeList.indexOf(refId);
+  if (direct >= 0) {
+    return activeList[(direct + 1) % activeList.length];
+  }
+
+  const all = sortedParties().map(p => p.id);
+  let refIdx = all.indexOf(refId);
+  if (refIdx < 0) refIdx = 0;
+
+  for (let step = 1; step <= all.length; step++) {
+    const id = all[(refIdx + step) % all.length];
+    if (activeList.includes(id)) return id;
+  }
+
+  return activeList[0];
+}
+
+function uidFromName(name) {
+  let base = String(name || 'partei')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'partei';
+
+  let id = base;
+  let n = 2;
+  while (P(id)) {
+    id = `${base}-${n++}`;
+  }
+  return id;
+}
+
+function quarterLabelByMonth(monthIndex) {
+  if (monthIndex <= 2) return '1. Quartal';
+  if (monthIndex <= 5) return '2. Quartal';
+  if (monthIndex <= 8) return '3. Quartal';
+  return '4. Quartal';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DYNAMIC RESOLUTION
+// ════════════════════════════════════════════════════════════════
+
+function assignDynamicStream(entries) {
+  const map = new Map();
+  let dynamic = false;
+  let lastAssigned = null;
+
+  for (const e of entries) {
+    const actives = activeIds(e.iso);
+    let assigned = null;
+
+    if (!actives.length) {
+      map.set(e._key, null);
+      continue;
+    }
+
+    if (!dynamic && isStaticLineup(e.iso) && actives.includes(e.pid)) {
+      assigned = e.pid;
+    } else {
+      dynamic = true;
+      if (lastAssigned) {
+        assigned = nextAfterReference(lastAssigned, actives);
+      } else if (actives.includes(e.pid)) {
+        assigned = e.pid;
+      } else {
+        assigned = actives[0];
+      }
+    }
+
+    map.set(e._key, assigned);
+    if (assigned) lastAssigned = assigned;
+  }
+
+  return map;
+}
+
+function getResolvedPlans() {
+  const putzEntries = PUTZ_PDF.map((e, i) => ({
+    ...e,
+    _key: `p${i}`,
+    iso: e.iso
+  }));
+
+  const muellEntries = MUELL_PDF
+    .map((e, i) => e.pid ? { ...e, _key: `m${i}`, iso: muellIso(e) } : null)
+    .filter(Boolean);
+
+  return {
+    putzMap: assignDynamicStream(putzEntries),
+    muellMap: assignDynamicStream(muellEntries)
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+//  LEGENDS
+// ════════════════════════════════════════════════════════════════
+
+function renderLegends() {
+  const html = sortedParties().map(p => {
+    const st = statusOf(p);
+    return `
+      <div class="leg-item${st.cls === 'chip-red' ? ' gone' : ''}">
+        <div class="leg-dot" style="background:${p.color}"></div>
+        <span>${esc(p.name)}</span>
+        ${st.cls !== 'chip-green' ? `<span class="chip ${st.cls}">${st.label}</span>` : ''}
+      </div>
+    `;
+  }).join('') + `<span style="margin-left:auto;font-size:11px;color:var(--label3)">*</span><span style="font-size:11px;color:var(--label3)"> = Feiertagsabweichung</span>`;
+
+  ['lgOverview', 'lgPutz', 'lgMuell'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  OVERVIEW
+// ════════════════════════════════════════════════════════════════
+
+function renderOverview() {
+  const { muellMap, putzMap } = getResolvedPlans();
+  const today = todayIso();
+
+  const upcoming = [];
+  MUELL_PDF.forEach((e, idx) => {
+    if (!e.pid) return;
+    const iso = muellIso(e);
+    if (iso < today) return;
+    const resolvedId = muellMap.get(`m${idx}`);
+    if (!resolvedId) return;
+    upcoming.push({ ...e, iso, dayN: parseInt(e.d, 10), resolvedId });
+  });
+
+  document.getElementById('upcomingGrid').innerHTML = upcoming.slice(0, 6).map(e => {
+    const p = P(e.resolvedId);
+    if (!p) return '';
+    return `
+      <div class="uc" style="border-top-color:${p.color}">
+        <div class="uc-day" style="color:${p.color}">${String(e.dayN).padStart(2, '0')}</div>
+        <div class="uc-month">${MONTHS[e.m]} 2026</div>
+        <div class="uc-type">${esc(e.type)}</div>
+        <div class="uc-party" style="color:${p.color}">${esc(p.name)}</div>
+        ${e.f ? `<div class="uc-ft">* Feiertagstermin</div>` : ''}
+      </div>
+    `;
+  }).join('') || `<p style="color:var(--label2);font-size:14px;grid-column:1/-1">Keine weiteren Termine für 2026.</p>`;
+
+  const currentPutz = PUTZ_PDF.find(s => today >= s.iso && today <= addDaysIso(s.iso, 6));
+  const nextPutz = PUTZ_PDF.find(s => s.iso > today);
+  const kw = getKW();
+
+  const wb = document.getElementById('weekBanner');
+  const t = document.getElementById('wbTitle');
+  const s2 = document.getElementById('wbSub');
+
+  wb.style.display = 'flex';
+
+  if (currentPutz) {
+    const idx = PUTZ_PDF.indexOf(currentPutz);
+    const id = putzMap.get(`p${idx}`);
+    const p = id && P(id);
+    if (p) {
+      t.innerHTML = `KW ${currentPutz.kw} · Putzwoche — <span style="color:${p.color};font-weight:700">${esc(p.name)}</span> ist dran`;
+      s2.textContent = currentPutz.dates;
+    } else {
+      t.textContent = `KW ${currentPutz.kw} · Putzwoche — Keine Partei zugewiesen`;
+      s2.textContent = currentPutz.dates;
+    }
+  } else if (nextPutz) {
+    t.textContent = `KW ${kw} · Diese Woche keine Putzwoche`;
+    s2.textContent = `Nächste Putzwoche: KW ${nextPutz.kw} · ${nextPutz.dates}`;
+  } else {
+    t.textContent = `KW ${kw} · Keine weiteren Putzwochen`;
+    s2.textContent = '';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PUTZPLAN
+// ════════════════════════════════════════════════════════════════
+
+function renderPutzplan() {
+  const { putzMap } = getResolvedPlans();
+  document.getElementById('putzSub').textContent = 'Gerade Kalenderwochen 2026 · Bei Änderungen wird ab dem jeweiligen Datum neu rotiert';
+
+  const changes = sortedParties().filter(p => p.activeFrom || p.activeUntil);
+  const banner = document.getElementById('putzBanner');
+
+  if (changes.length) {
+    const lines = changes.map(p => {
+      const bits = [];
+      if (p.activeFrom) bits.push(`Eintritt ab ${fmt(p.activeFrom)}`);
+      if (p.activeUntil) bits.push(`Austritt ab ${fmt(p.activeUntil)}`);
+      return `${badge(p.id, true)} <span>${bits.join(' · ')}</span>`;
+    }).join('&nbsp;&nbsp;');
+
+    banner.innerHTML = `
+      <div class="notice notice-orange" style="margin-bottom:14px;flex-wrap:wrap;gap:6px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>${lines}</span>
+      </div>
+    `;
+  } else {
+    banner.innerHTML = '';
+  }
+
+  const groups = {};
+  PUTZ_PDF.forEach((e, idx) => {
+    const month = parseInt(e.iso.slice(5, 7), 10) - 1;
+    const q = quarterLabelByMonth(month);
+    if (!groups[q]) groups[q] = [];
+    groups[q].push({ ...e, idx });
+  });
+
+  const today = todayIso();
+  document.getElementById('putzGrid').innerHTML = Object.entries(groups).map(([label, items]) => `
+    <div class="qtr-card">
+      <div class="qtr-hdr">${label}</div>
+      ${items.map(item => {
+        const assignedId = putzMap.get(`p${item.idx}`);
+        const adjusted = assignedId && assignedId !== item.pid;
+        const current = today >= item.iso && today <= addDaysIso(item.iso, 6);
+        return `
+          <div class="putz-row${current ? ' now' : ''}">
+            <div class="putz-kw">KW ${item.kw}</div>
+            <div class="putz-dates">${item.dates}${adjusted ? ` <span class="chip chip-orange" style="margin-left:6px">angepasst</span>` : ''}</div>
+            ${assignedId ? badge(assignedId, true) : `<span style="font-size:12px;color:var(--label3)">–</span>`}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MÜLLPLAN
+// ════════════════════════════════════════════════════════════════
+
+function renderMuellplan() {
+  const { muellMap } = getResolvedPlans();
+
+  document.getElementById('monthsGrid').innerHTML = MONTHS.map((monthName, m) => {
+    const rows = MUELL_PDF.map((e, idx) => {
+      if (e.m !== m) return '';
+      if (!e.pid) {
+        return `
+          <div class="ev-row">
+            <div class="ev-date">${e.d}${e.f ? ` <span class="fmark">*</span>` : ''}</div>
+            <div class="ev-type">${esc(e.type)}</div>
+            <div class="ev-auto">automatisch</div>
+          </div>
+        `;
+      }
+
+      const assignedId = muellMap.get(`m${idx}`);
+      const adjusted = assignedId && assignedId !== e.pid;
+
+      return `
+        <div class="ev-row">
+          <div class="ev-date">${e.d}${e.f ? ` <span class="fmark">*</span>` : ''}</div>
+          <div class="ev-type">${esc(e.type)}${adjusted ? ` <span class="chip chip-orange" style="margin-left:6px">angepasst</span>` : ''}</div>
+          ${assignedId ? badge(assignedId, true) : `<div class="ev-auto">–</div>`}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="month-card">
+        <div class="month-hdr">
+          <span>${monthName}</span>
+          <span style="font-size:12px;color:var(--label2)">2026</span>
+        </div>
+        ${rows}
+      </div>
+    `;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PARTEIEN
+// ════════════════════════════════════════════════════════════════
+
+function renderRotationPreview() {
+  const sorted = sortedParties();
+  const html = [`<span class="rot-label">Rotation</span>`];
+
+  sorted.forEach((p, i) => {
+    const st = statusOf(p);
+    html.push(`${badge(p.id, true)}${st.cls !== 'chip-green' ? ` <span class="chip ${st.cls}">${st.label}</span>` : ''}`);
+    if (i < sorted.length - 1) html.push(`<span class="rot-arrow">→</span>`);
+  });
+
+  document.getElementById('rotPreview').innerHTML = html.join(' ');
+}
+
+function moveParty(fromIdx, toIdx) {
+  const arr = sortedParties();
+  if (fromIdx == null || toIdx == null || fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  arr.splice(toIdx, 0, moved);
+  arr.forEach((p, i) => p.order = i);
+  save('Reihenfolge gespeichert');
+  renderAll();
+}
+
+function renderParties() {
+  renderRotationPreview();
+
+  const list = document.getElementById('partiesList');
+  const sorted = sortedParties();
+
+  list.innerHTML = sorted.map((p, idx) => {
+    const st = statusOf(p);
+    const dateBits = [];
+    if (p.floor) dateBits.push(esc(p.floor));
+    if (p.activeFrom) dateBits.push(`Eintritt ab ${fmt(p.activeFrom)}`);
+    if (p.activeUntil) dateBits.push(`Austritt ab ${fmt(p.activeUntil)}`);
+
+    return `
+      <div class="prow${st.cls === 'chip-red' ? ' gone' : ''}" draggable="true" data-id="${esc(p.id)}" data-idx="${idx}">
+        <div class="drag-grip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="9" cy="5" r="1"></circle><circle cx="9" cy="12" r="1"></circle><circle cx="9" cy="19" r="1"></circle>
+            <circle cx="15" cy="5" r="1"></circle><circle cx="15" cy="12" r="1"></circle><circle cx="15" cy="19" r="1"></circle>
+          </svg>
+        </div>
+        <div class="avatar" style="background:${p.color}">${esc(initials(p.name))}</div>
+        <div class="pinfo">
+          <div class="pname">
+            ${esc(p.name)}
+            <span class="chip ${st.cls}">${st.label}</span>
+          </div>
+          <div class="pdetail">${dateBits.join(' · ') || 'Keine Datumsbegrenzung'}</div>
+        </div>
+        <div class="pnum">#${idx + 1}</div>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.prow').forEach(row => {
+    row.addEventListener('click', () => openEdit(row.dataset.id));
+
+    row.addEventListener('dragstart', () => {
+      dragIdx = +row.dataset.idx;
+      row.classList.add('dragging');
+    });
+
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      row.classList.add('dragover');
+    });
+
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('dragover');
+    });
+
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      row.classList.remove('dragover');
+      moveParty(dragIdx, +row.dataset.idx);
+    });
+
+    row.addEventListener('dragend', () => {
+      dragIdx = null;
+      list.querySelectorAll('.prow').forEach(r => r.classList.remove('dragging', 'dragover'));
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  STATISTIK
+// ════════════════════════════════════════════════════════════════
+
+function countAssignments(map) {
+  const counts = {};
+  sortedParties().forEach(p => counts[p.id] = 0);
+  for (const id of map.values()) {
+    if (id && counts[id] != null) counts[id]++;
+  }
+  return counts;
+}
+
+function renderFairnessCard(elId, title, counts) {
+  const el = document.getElementById(elId);
+  const sorted = sortedParties();
+  const max = Math.max(1, ...sorted.map(p => counts[p.id] || 0));
+
+  el.innerHTML = `
+    <div class="fair-hdr">${title}</div>
+    ${sorted.map(p => {
+      const count = counts[p.id] || 0;
+      const width = (count / max) * 100;
+      return `
+        <div class="fair-row">
+          <div class="fair-name">${badge(p.id, true)}</div>
+          <div class="fair-cnt">${count}</div>
+          <div class="bar-wrap">
+            <div class="bar-fill" style="width:${width}%;background:${p.color}"></div>
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+function renderStats() {
+  const { putzMap, muellMap } = getResolvedPlans();
+  const putzCounts = countAssignments(putzMap);
+  const muellCounts = countAssignments(muellMap);
+
+  const activeNow = sortedParties().filter(p => isActiveOn(p, todayIso())).length;
+  const totalParties = sortedParties().length;
+  const putzTotal = [...putzMap.values()].filter(Boolean).length;
+  const muellTotal = [...muellMap.values()].filter(Boolean).length;
+  const feiertage = MUELL_PDF.filter(e => e.f).length;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-val">${activeNow}</div>
+      <div class="stat-lbl">Aktiv aktuell</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏠</div>
+      <div class="stat-val">${totalParties}</div>
+      <div class="stat-lbl">Parteien gesamt</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🧹</div>
+      <div class="stat-val">${putzTotal}</div>
+      <div class="stat-lbl">Putz-Einsätze</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🗑️</div>
+      <div class="stat-val">${muellTotal}</div>
+      <div class="stat-lbl">Manuelle Müll-Termine</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📅</div>
+      <div class="stat-val">${feiertage}</div>
+      <div class="stat-lbl">Feiertagsabweichungen</div>
+    </div>
+  `;
+
+  renderFairnessCard('putzFairness', 'Automatisch aus aktueller Belegung berechnet', putzCounts);
+  renderFairnessCard('muellFairness', 'Automatisch aus aktueller Belegung berechnet', muellCounts);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════════════════════════════
+
+function renderColorGrid() {
+  const grid = document.getElementById('colorGrid');
+  grid.innerHTML = PALETTE.map(c => `
+    <button type="button" class="cswatch${c === selColor ? ' sel' : ''}" style="background:${c}" data-color="${c}"></button>
+  `).join('');
+
+  grid.querySelectorAll('.cswatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selColor = btn.dataset.color;
+      renderColorGrid();
+    });
+  });
+}
+
+function openAdd() {
+  editId = null;
+  selColor = '#AF52DE';
+  document.getElementById('sheetTitle').textContent = 'Neue Partei';
+  document.getElementById('fName').value = '';
+  document.getElementById('fFloor').value = '';
+  document.getElementById('fFrom').value = '';
+  document.getElementById('fUntil').value = '';
+  document.getElementById('delBtn').style.display = 'none';
+  renderColorGrid();
+  updateNote();
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => document.getElementById('fName').focus(), 50);
+}
+
+function openEdit(id) {
+  const p = P(id);
+  if (!p) return;
+  editId = id;
+  selColor = p.color;
+  document.getElementById('sheetTitle').textContent = 'Partei bearbeiten';
+  document.getElementById('fName').value = p.name;
+  document.getElementById('fFloor').value = p.floor || '';
+  document.getElementById('fFrom').value = p.activeFrom || '';
+  document.getElementById('fUntil').value = p.activeUntil || '';
+  document.getElementById('delBtn').style.display = 'inline-flex';
+  renderColorGrid();
+  updateNote();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function updateNote() {
+  const from = document.getElementById('fFrom').value;
+  const until = document.getElementById('fUntil').value;
+  const note = document.getElementById('dateNote');
+
+  if (!from && !until) {
+    note.style.display = 'none';
+    note.textContent = '';
+    return;
+  }
+
+  if (from && until && until <= from) {
+    note.style.display = 'block';
+    note.innerHTML = `Achtung: <b>Austritt ab</b> muss nach <b>Eintritt ab</b> liegen.`;
+    return;
+  }
+
+  const bits = [];
+  if (from) bits.push(`Die Partei wird ab ${fmt(from)} in die Rotation einbezogen.`);
+  if (until) bits.push(`Ab ${fmt(until)} wird sie nicht mehr eingeplant.`);
+  note.style.display = 'block';
+  note.textContent = bits.join(' ');
+}
+
+function saveParty() {
+  const name = document.getElementById('fName').value.trim();
+  const floor = document.getElementById('fFloor').value.trim();
+  const from = document.getElementById('fFrom').value;
+  const until = document.getElementById('fUntil').value;
+
+  if (!name) {
+    showToast('Bitte einen Namen eingeben');
+    return;
+  }
+
+  if (from && until && until <= from) {
+    showToast('Austritt muss nach Eintritt liegen');
+    return;
+  }
+
+  if (editId) {
+    const p = P(editId);
+    if (!p) return;
+    p.name = name;
+    p.floor = floor;
+    p.color = selColor;
+    p.activeFrom = from;
+    p.activeUntil = until;
+  } else {
+    parties.push({
+      id: uidFromName(name),
+      name,
+      floor,
+      color: selColor,
+      order: sortedParties().length,
+      activeFrom: from,
+      activeUntil: until
+    });
+  }
+
+  normalizeParties();
+  save('Partei gespeichert');
+  closeModal();
+  renderAll();
+}
+
+function delParty() {
+  if (!editId) return;
+  parties = parties.filter(p => p.id !== editId);
+  normalizeParties();
+  save('Partei gelöscht');
+  closeModal();
+  renderAll();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════════════════════
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById(`panel-${name}`);
+  if (panel) panel.classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PDF EXPORT
+// ════════════════════════════════════════════════════════════════
+
+function buildPlanPartyChips() {
+  return sortedParties().map(p => {
+    const st = statusOf(p);
+    return `
+      <div class="doc-chip-wrap">
+        <span class="doc-chip" style="background:${p.color}">${esc(p.name)}</span>
+        <span class="doc-chip-sub">${esc(p.floor || '–')}${st.label !== 'Aktiv' ? ` · ${esc(st.label)}` : ''}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildPlanRotation() {
+  return sortedParties().map(p => esc(p.name)).join(' → ');
+}
+
+function buildPlanPutzRows(putzMap) {
+  return PUTZ_PDF.map((e, idx) => {
+    const assignedId = putzMap.get(`p${idx}`);
+    const p = assignedId && P(assignedId);
+    const changed = assignedId && assignedId !== e.pid;
+    return `
+      <tr>
+        <td class="doc-center"><strong>KW ${e.kw}</strong></td>
+        <td>${esc(e.dates)}</td>
+        <td>
+          ${p ? `<span class="doc-pill" style="background:${p.color}">${esc(p.name)}</span>` : '–'}
+          ${changed ? `<span class="doc-note">angepasst</span>` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function buildPlanPutzRowsSlice(putzMap, start = 0, end = PUTZ_PDF.length) {
+  return PUTZ_PDF.slice(start, end).map((e, relIdx) => {
+    const idx = start + relIdx;
+    const assignedId = putzMap.get(`p${idx}`);
+    const p = assignedId && P(assignedId);
+    const changed = assignedId && assignedId !== e.pid;
+    return `
+      <tr>
+        <td class="doc-center"><strong>KW ${e.kw}</strong></td>
+        <td>${esc(e.dates)}</td>
+        <td>
+          ${p ? `<span class="doc-pill" style="background:${p.color}">${esc(p.name)}</span>` : '–'}
+          ${changed ? `<span class="doc-note">angepasst</span>` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function buildPlanMonthsSlice(start, end, muellMap) {
+  return Array.from({ length: Math.max(0, end - start) }, (_, i) => buildPlanMonth(start + i, muellMap)).join('');
+}
+
+function buildExportPagesHTML() {
+  const { putzMap, muellMap } = getResolvedPlans();
+  const printedAt = fmt(todayIso());
+  const page = (content) => `
+    <section class="pdf-page" style="width:900px; min-height:1273px; padding:18px; background:var(--bg); box-sizing:border-box;">
+      <div class="doc-wrap" style="padding:0; background:transparent; box-shadow:none;">
+        <div class="doc-sheet" style="min-height:1237px;">
+          ${content}
+        </div>
+      </div>
+    </section>
+  `;
+
+  const header = `
+    <div class="doc-head">
+      <div>
+        <div class="doc-title">Hausplan 2026</div>
+        <div class="doc-sub">Bliesweg 4a · Ansicht wie in der Vorlage, aber live bearbeitbar</div>
+      </div>
+      <div class="doc-meta">
+        <div class="doc-meta-lbl">Stand</div>
+        <div class="doc-meta-val">${printedAt}</div>
+      </div>
+    </div>
+  `;
+
+  const intro = `
+    <div class="doc-grid2">
+      <section class="doc-card">
+        <div class="doc-card-h">Mietparteien</div>
+        <div class="doc-card-b"><div class="doc-chips">${buildPlanPartyChips()}</div></div>
+      </section>
+      <section class="doc-card">
+        <div class="doc-card-h">Rotation & Hinweise</div>
+        <div class="doc-card-b">
+          <div class="doc-rotation">${buildPlanRotation()}</div>
+          <div class="doc-notes">
+            <div>Gelbe Tonne und Papiertonne werden aktiv rausgestellt.</div>
+            <div>Restmüll und Biomüll laufen automatisch.</div>
+            <div>* markiert Feiertagsabweichungen.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+
+  const putzTitle = (cont = false) => `
+    <div class="doc-sec-title">Putzplan Treppenhaus</div>
+    <div class="doc-sec-sub">Gerade Kalenderwochen 2026 · ${cont ? 'Fortsetzung' : 'Änderungen werden automatisch neu rotiert'}</div>
+  `;
+
+  const putzCard = (start, end) => `
+    <section class="doc-card">
+      <div class="doc-card-h">Wochenübersicht</div>
+      <div class="doc-card-b" style="padding:0">
+        <table class="doc-table">
+          <thead>
+            <tr><th style="width:90px">KW</th><th style="width:180px">Zeitraum</th><th>Partei</th></tr>
+          </thead>
+          <tbody>${buildPlanPutzRowsSlice(putzMap, start, end)}</tbody>
+        </table>
+      </div>
+    </section>
+  `;
+
+  const muellTitle = (cont = false) => `
+    <div class="doc-sec-title">Mülltonnenplan 2026</div>
+    <div class="doc-sec-sub">${cont ? 'Fortsetzung · Nur Gelbe Tonne und Papiertonne aktiv rausstellen' : 'Nur Gelbe Tonne und Papiertonne aktiv rausstellen'}</div>
+  `;
+
+  const muellBlock = (start, end) => `
+    <div class="doc-months">${buildPlanMonthsSlice(start, end, muellMap)}</div>
+  `;
+
+  const statsPage = `
+    <div class="doc-sec-title">Fairness & Statistik</div>
+    <div class="doc-sec-sub">Übersicht aller Zuständigkeiten 2026</div>
+    ${buildPlanStats(putzMap, muellMap)}
+    <div class="doc-foot">Bliesweg 4a · Hausplan 2026</div>
+  `;
+
+  return [
+    page(header + intro + putzTitle(false) + putzCard(0, 13)),
+    page(putzTitle(true) + putzCard(13, PUTZ_PDF.length)),
+    page(muellTitle(false) + muellBlock(0, 4)),
+    page(muellTitle(true) + muellBlock(4, 8)),
+    page(muellTitle(true) + muellBlock(8, 12)),
+    page(statsPage)
+  ].join('');
+}
+
+function buildPlanMonth(monthIndex, muellMap) {
+  const rows = MUELL_PDF.map((e, idx) => {
+    if (e.m !== monthIndex) return '';
+    if (!e.pid) {
+      return `
+        <div class="doc-mrow auto">
+          <div class="doc-date">${esc(e.d)}${e.f ? ' *' : ''}</div>
+          <div class="doc-type">${esc(e.type)}</div>
+          <div class="doc-party doc-muted">automatisch</div>
+        </div>
+      `;
+    }
+    const assignedId = muellMap.get(`m${idx}`);
+    const p = assignedId && P(assignedId);
+    const changed = assignedId && assignedId !== e.pid;
+    return `
+      <div class="doc-mrow">
+        <div class="doc-date">${esc(e.d)}${e.f ? ' *' : ''}</div>
+        <div class="doc-type">${esc(e.type)}${changed ? ` <span class="doc-note">angepasst</span>` : ''}</div>
+        <div class="doc-party">${p ? `<span class="doc-pill" style="background:${p.color}">${esc(p.name)}</span>` : '–'}</div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <section class="doc-month">
+      <div class="doc-month-h"><span>${MONTHS[monthIndex]}</span><span>2026</span></div>
+      <div class="doc-month-b">${rows}</div>
+    </section>
+  `;
+}
+
+function buildPlanStats(putzMap, muellMap) {
+  const putzCounts = countAssignments(putzMap);
+  const muellCounts = countAssignments(muellMap);
+  const bars = (title, counts) => {
+    const max = Math.max(1, ...sortedParties().map(p => counts[p.id] || 0));
+    return `
+      <section class="doc-card">
+        <div class="doc-card-h">${title}</div>
+        <div class="doc-card-b">
+          ${sortedParties().map(p => {
+            const count = counts[p.id] || 0;
+            const width = (count / max) * 100;
+            return `
+              <div class="doc-stat-line">
+                <div class="doc-stat-name">${esc(p.name)}</div>
+                <div class="doc-stat-bar"><div class="doc-stat-fill" style="width:${width}%;background:${p.color}"></div></div>
+                <div class="doc-stat-value">${count}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </section>
+    `;
+  };
+  return `<div class="doc-stats">${bars('Putzplan · Einsätze je Partei', putzCounts)}${bars('Mülltonnen · Einsätze je Partei', muellCounts)}</div>`;
+}
+
+function buildPlanHTML() {
+  const { putzMap, muellMap } = getResolvedPlans();
+  const printedAt = fmt(todayIso());
+  return `
+    <div class="doc-wrap">
+      <div class="doc-sheet">
+        <div class="doc-head">
+          <div>
+            <div class="doc-title">Hausplan 2026</div>
+            <div class="doc-sub">Bliesweg 4a · Ansicht wie in der Vorlage, aber live bearbeitbar</div>
+          </div>
+          <div class="doc-meta">
+            <div class="doc-meta-lbl">Stand</div>
+            <div class="doc-meta-val">${printedAt}</div>
+          </div>
+        </div>
+
+        <div class="doc-grid2">
+          <section class="doc-card">
+            <div class="doc-card-h">Mietparteien</div>
+            <div class="doc-card-b"><div class="doc-chips">${buildPlanPartyChips()}</div></div>
+          </section>
+          <section class="doc-card">
+            <div class="doc-card-h">Rotation & Hinweise</div>
+            <div class="doc-card-b">
+              <div class="doc-rotation">${buildPlanRotation()}</div>
+              <div class="doc-notes">
+                <div>Gelbe Tonne und Papiertonne werden aktiv rausgestellt.</div>
+                <div>Restmüll und Biomüll laufen automatisch.</div>
+                <div>* markiert Feiertagsabweichungen.</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="doc-sec-title">Putzplan Treppenhaus</div>
+        <div class="doc-sec-sub">Gerade Kalenderwochen 2026 · Änderungen werden automatisch neu rotiert</div>
+        <section class="doc-card">
+          <div class="doc-card-h">Wochenübersicht</div>
+          <div class="doc-card-b" style="padding:0">
+            <table class="doc-table">
+              <thead>
+                <tr><th style="width:90px">KW</th><th style="width:180px">Zeitraum</th><th>Partei</th></tr>
+              </thead>
+              <tbody>${buildPlanPutzRows(putzMap)}</tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="doc-sec-title">Mülltonnenplan 2026</div>
+        <div class="doc-sec-sub">Nur Gelbe Tonne und Papiertonne aktiv rausstellen</div>
+        <div class="doc-months">
+          ${MONTHS.map((_, m) => buildPlanMonth(m, muellMap)).join('')}
+        </div>
+
+        ${buildPlanStats(putzMap, muellMap)}
+        <div class="doc-foot">Bliesweg 4a · Hausplan 2026</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlanPreview() {
+  const el = document.getElementById('planPreview');
+  if (el) el.innerHTML = buildPlanHTML();
+}
+
+function buildPrintDocument() {
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Hausplan 2026 – Druckansicht</title><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>
+    @page { size: A4; margin: 12mm; }
+    html,body{margin:0;padding:0;background:#eef1f5;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#111827}
+    body{padding:0} .doc-wrap{padding:0} .doc-sheet{background:#fff;padding:0;border-radius:0;box-shadow:none;border:none} .doc-sheet::before{display:none}
+    .doc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(17,24,39,.10)}
+    .doc-title{font-size:30px;font-weight:800;line-height:1.02;letter-spacing:-1px}.doc-sub{font-size:13px;color:#667085;margin-top:6px}.doc-meta{min-width:170px;background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid rgba(15,23,42,.08);border-radius:16px;padding:12px 14px}.doc-meta-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;font-weight:700}.doc-meta-val{font-size:16px;font-weight:700;margin-top:3px}
+    .doc-grid2,.doc-months,.doc-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}.doc-grid2{grid-template-columns:1.15fr .85fr}.doc-card{background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:18px;overflow:hidden}.doc-card-h{padding:11px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid rgba(15,23,42,.08)}.doc-card-b{padding:14px}
+    .doc-chips{display:flex;flex-wrap:wrap;gap:10px 12px}.doc-chip-wrap{display:flex;flex-direction:column;gap:4px}.doc-chip,.doc-pill{display:inline-flex;width:fit-content;padding:6px 10px;border-radius:999px;color:#fff;font-size:11px;font-weight:700;line-height:1}.doc-chip-sub{font-size:11px;color:#667085;padding-left:2px}.doc-rotation{font-size:15px;font-weight:600;line-height:1.45}.doc-notes{display:grid;gap:8px;font-size:13px;color:#334155;margin-top:12px}.doc-sec-title{font-size:20px;font-weight:800;letter-spacing:-.6px;margin:18px 0 3px}.doc-sec-sub{font-size:13px;color:#667085;margin-bottom:12px}
+    .doc-table{width:100%;border-collapse:collapse}.doc-table th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;background:#f8fafc;border-bottom:1px solid rgba(15,23,42,.10)}.doc-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid rgba(15,23,42,.08);vertical-align:middle}.doc-table tr:nth-child(even) td{background:#fcfdff}.doc-center{text-align:center}.doc-note{display:inline-flex;margin-left:6px;font-size:10px;font-weight:700;color:#9a6700;background:#fff4d6;border:1px solid #f5d48a;border-radius:999px;padding:3px 7px}
+    .doc-month{border:1px solid rgba(15,23,42,.08);border-radius:18px;overflow:hidden;background:#fff;break-inside:avoid}.doc-month-h{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid rgba(15,23,42,.08);font-size:13px;font-weight:800}.doc-month-b{padding:6px 0}.doc-mrow{display:grid;grid-template-columns:68px 1fr auto;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(15,23,42,.06);font-size:12px}.doc-mrow:last-child{border-bottom:none}.doc-mrow.auto{background:#fafafa}.doc-date{color:#64748b;font-weight:700;font-variant-numeric:tabular-nums}.doc-party{text-align:right}.doc-muted{color:#94a3b8;font-weight:600;font-size:11px}
+    .doc-stat-line{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;margin-bottom:10px}.doc-stat-line:last-child{margin-bottom:0}.doc-stat-name{font-size:12px;font-weight:700}.doc-stat-bar{height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden}.doc-stat-fill{height:100%;border-radius:999px}.doc-stat-value{font-size:12px;font-weight:800;text-align:right}.doc-foot{margin-top:12px;text-align:right;font-size:11px;color:#64748b}
+    @media print{body{background:#fff;padding:0 0 0 0}}
+  </style></head><body>${buildPlanHTML()}</body></html>`;
+}
+
+async function exportPDF() {
+  try {
+    const PDF = window.jspdf && window.jspdf.jsPDF;
+    const h2c = window.html2canvas;
+    if (!PDF || !h2c) {
+      showToast('PDF-Bibliothek lädt noch');
+      return;
+    }
+
+    showToast('PDF wird erstellt ...');
+
+    const stage = document.createElement('div');
+    stage.style.position = 'fixed';
+    stage.style.left = '-10000px';
+    stage.style.top = '0';
+    stage.style.width = '900px';
+    stage.style.padding = '0';
+    stage.style.margin = '0';
+    stage.style.background = 'var(--bg)';
+    stage.style.zIndex = '-1';
+    stage.innerHTML = buildExportPagesHTML();
+    document.body.appendChild(stage);
+
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const pages = [...stage.querySelectorAll('.pdf-page')];
+    if (!pages.length) {
+      stage.remove();
+      showToast('Exportseiten nicht gefunden');
+      return;
+    }
+
+    const pdf = new PDF({ unit: 'pt', format: 'a4', compress: true });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 12;
+    const printableW = pageW - margin * 2;
+    const printableH = pageH - margin * 2;
+
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await h2c(pages[i], {
+        scale: Math.min(3, window.devicePixelRatio > 1 ? 2 : 1.6),
+        backgroundColor: '#F2F2F7',
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        windowWidth: 900,
+        width: 900,
+        height: Math.ceil(pages[i].scrollHeight)
+      });
+
+      if (i > 0) pdf.addPage();
+      const imgData = canvas.toDataURL('image/jpeg', 0.96);
+      pdf.addImage(imgData, 'JPEG', margin, margin, printableW, printableH, undefined, 'FAST');
+    }
+
+    stage.remove();
+
+    const blob = pdf.output('blob');
+    const filename = 'hausplan-2026-bliesweg-4a.pdf';
+
+    if (navigator.share && window.File) {
+      try {
+        const file = new File([blob], filename, { type: 'application/pdf' });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename });
+          showToast('PDF geteilt');
+          return;
+        }
+      } catch (e) {}
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showToast('PDF gespeichert');
+  } catch (e) {
+    showToast('PDF-Export fehlgeschlagen');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  RENDER ALL
+// ════════════════════════════════════════════════════════════════
+
+function renderAll() {
+  normalizeParties();
+  renderPlanPreview();
+  renderLegends();
+  renderOverview();
+  renderPutzplan();
+  renderMuellplan();
+  renderParties();
+  renderStats();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════
+
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+
+// ════════════════════════════════════════════════════════════════
+//  FIREBASE CONFIG  ---  HIER DEINE FIREBASE-DATEN EINTRAGEN
+// ════════════════════════════════════════════════════════════════
+// Anleitung: console.firebase.google.com -> Projekt anlegen (kostenlos)
+// -> Web-App hinzufügen -> Config hier einfügen
+// -> Authentication: E-Mail/Passwort aktivieren, einen Admin-User anlegen
+// -> Firestore Database: im Testmodus (oder mit untenstehenden Regeln) anlegen
+const firebaseConfig = {
+  apiKey: "AIzaSyCRmEIy2jzoOdVXdGEQQqu7ClnGHPtj5Wc",
+  authDomain: "hausplan-bliesweg4a.firebaseapp.com",
+  projectId: "hausplan-bliesweg4a",
+  storageBucket: "hausplan-bliesweg4a.firebasestorage.app",
+  messagingSenderId: "1040378446864",
+  appId: "1:1040378446864:web:60b7deebfbfd51c341f695"
+};
+
+let fbReady = false;
+let db = null;
+let currentUser = null;
+let isAdmin = false;
+const DOC_PATH = { col: 'hausplan', doc: 'bliesweg4a' };
+
+try {
+  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'DEIN_API_KEY') {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    fbReady = true;
+  }
+} catch (e) {
+  console.warn('Firebase nicht initialisiert:', e);
+}
+
+// ── AUTH STATE ──────────────────────────────────────────────────
+function updateAuthUI() {
+  const loginLabel = document.getElementById('loginBtnLabel');
+  const addPartyBtn = document.getElementById('addPartyBtn');
+  const navAddPartyBtn = document.getElementById('navAddPartyBtn');
+  const viewerNotice = document.getElementById('viewerNotice');
+  const delBtn = document.getElementById('delBtn');
+
+  if (isAdmin) {
+    loginLabel.textContent = 'Admin ✓';
+    if (addPartyBtn) addPartyBtn.style.display = 'flex';
+    if (navAddPartyBtn) navAddPartyBtn.style.display = 'inline-flex';
+    if (viewerNotice) viewerNotice.style.display = 'none';
+    document.querySelectorAll('.prow').forEach(r => r.style.cursor = 'grab');
+  } else {
+    loginLabel.textContent = 'Admin';
+    if (addPartyBtn) addPartyBtn.style.display = 'none';
+    if (navAddPartyBtn) navAddPartyBtn.style.display = 'none';
+    if (viewerNotice) viewerNotice.style.display = 'flex';
+    document.querySelectorAll('.prow').forEach(r => { r.style.cursor = 'default'; r.setAttribute('draggable', 'false'); });
+  }
+}
+
+if (fbReady) {
+  firebase.auth().onAuthStateChanged(user => {
+    currentUser = user;
+    isAdmin = !!user;
+    updateAuthUI();
+    document.getElementById('loggedInWrap').style.display = user ? 'block' : 'none';
+    document.getElementById('loginFormWrap').style.display = user ? 'none' : 'block';
+    document.getElementById('logoutBtn').style.display = user ? 'inline-flex' : 'none';
+    document.getElementById('loginSubmitBtn').style.display = user ? 'none' : 'inline-flex';
+    if (user) document.getElementById('loggedInEmail').textContent = user.email;
+
+    // Firestore-Sync starten sobald bekannt ob Admin oder nicht
+    subscribeToData();
+  });
+} else {
+  // Kein Firebase konfiguriert -> reiner lokaler Modus, alle sind "Viewer"
+  updateAuthUI();
+}
+
+function openLogin() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('loginOverlay').classList.add('open');
+  document.getElementById('loginError').style.display = 'none';
+}
+function closeLoginModal() {
+  document.getElementById('loginOverlay').classList.remove('open');
+}
+function doLogin() {
+  if (!fbReady) {
+    showToast('Firebase ist nicht konfiguriert');
+    return;
+  }
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(() => {
+      showToast('Als Admin angemeldet');
+      closeLoginModal();
+    })
+    .catch(e => {
+      errEl.textContent = 'Anmeldung fehlgeschlagen: ' + (e.message || 'Unbekannter Fehler');
+      errEl.style.display = 'block';
+    });
+}
+function doLogout() {
+  if (!fbReady) return;
+  firebase.auth().signOut().then(() => {
+    showToast('Abgemeldet');
+    closeLoginModal();
+  });
+}
+
+// ── FIRESTORE SYNC (ersetzt/ergänzt localStorage) ───────────────
+let unsubscribeFirestore = null;
+
+function subscribeToData() {
+  if (!fbReady || !db) return;
+  if (unsubscribeFirestore) unsubscribeFirestore();
+  unsubscribeFirestore = db.collection(DOC_PATH.col).doc(DOC_PATH.doc)
+    .onSnapshot(snap => {
+      if (snap.exists) {
+        const data = snap.data();
+        if (data && Array.isArray(data.parties)) {
+          parties = data.parties;
+          normalizeParties();
+          try { localStorage.setItem('hausplan_v4', JSON.stringify(parties)); } catch (e) {}
+          renderAll();
+        }
+      } else if (isAdmin) {
+        // Noch kein Dokument vorhanden -> Admin legt Ausgangsdaten an
+        db.collection(DOC_PATH.col).doc(DOC_PATH.doc).set({ parties: parties, updatedAt: new Date().toISOString() });
+      }
+    }, err => {
+      console.warn('Firestore-Sync-Fehler:', err);
+    });
+}
+
+function persistToCloud() {
+  if (fbReady && db && isAdmin) {
+    db.collection(DOC_PATH.col).doc(DOC_PATH.doc)
+      .set({ parties: parties, updatedAt: new Date().toISOString() })
+      .catch(e => console.warn('Cloud-Speichern fehlgeschlagen:', e));
+  }
+}
+
+// Original save() um Cloud-Persistenz erweitern
+const _originalSave = save;
+save = function (msg = 'Gespeichert') {
+  _originalSave(msg);
+  persistToCloud();
+};
+
+// ── SCHREIBSCHUTZ: Nicht-Admins können keine Parteien ändern ───
+const _originalSaveParty = saveParty;
+saveParty = function () {
+  if (!isAdmin) { showToast('Nur Admins können Änderungen speichern'); closeModal(); return; }
+  _originalSaveParty();
+};
+const _originalDelParty = delParty;
+delParty = function () {
+  if (!isAdmin) { showToast('Nur Admins können löschen'); closeModal(); return; }
+  _originalDelParty();
+};
+const _originalMoveParty = moveParty;
+moveParty = function (fromIdx, toIdx) {
+  if (!isAdmin) { showToast('Nur Admins können die Reihenfolge ändern'); renderAll(); return; }
+  _originalMoveParty(fromIdx, toIdx);
+};
+const _originalOpenAdd = openAdd;
+openAdd = function () {
+  if (!isAdmin) { showToast('Nur Admins können Parteien hinzufügen'); return; }
+  _originalOpenAdd();
+};
+const _originalOpenEdit = openEdit;
+openEdit = function (id) {
+  if (!isAdmin) { showToast('Nur Admins können bearbeiten'); return; }
+  _originalOpenEdit(id);
+};
+
+// ════════════════════════════════════════════════════════════════
+//  ICS / KALENDER EXPORT
+// ════════════════════════════════════════════════════════════════
+
+function icsEscape(s) {
+  return String(s || '').replace(/[\\,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
+}
+
+function icsDate(iso) {
+  return iso.replace(/-/g, '');
+}
+
+function buildIcsEvents(kind) {
+  const { putzMap, muellMap } = getResolvedPlans();
+  const events = [];
+
+  if (kind === 'putz' || kind === 'all') {
+    PUTZ_PDF.forEach((e, idx) => {
+      const assignedId = putzMap.get(`p${idx}`);
+      const p = assignedId && P(assignedId);
+      const endIso = addDaysIso(e.iso, 7);
+      events.push({
+        uid: `putz-${e.iso}@hausplan-bliesweg4a`,
+        start: e.iso,
+        end: endIso,
+        summary: `Putzwoche KW ${e.kw}${p ? ' – ' + p.name : ''}`,
+        desc: `Treppenhaus-Putzplan · Zeitraum ${e.dates}${p ? ' · Zuständig: ' + p.name : ''}`,
+        allDay: true
+      });
+    });
+  }
+
+  if (kind === 'muell' || kind === 'all') {
+    MUELL_PDF.forEach((e, idx) => {
+      if (!e.pid) return; // nur aktiv rauszustellende Tonnen (Gelbe/Papier)
+      const iso = muellIso(e);
+      const assignedId = muellMap.get(`m${idx}`);
+      const p = assignedId && P(assignedId);
+      events.push({
+        uid: `muell-${idx}-${iso}@hausplan-bliesweg4a`,
+        start: iso,
+        end: addDaysIso(iso, 1),
+        summary: `${e.type} rausstellen${p ? ' – ' + p.name : ''}`,
+        desc: `Mülltonnenplan · ${e.type}${p ? ' · Zuständig: ' + p.name : ''}${e.f ? ' · Feiertagsabweichung' : ''}`,
+        allDay: true
+      });
+    });
+  }
+
+  return events;
+}
+
+function buildIcsFile(kind) {
+  const events = buildIcsEvents(kind);
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Hausplan Bliesweg 4a//DE',
+    'CALSCALE:GREGORIAN'
+  ];
+
+  events.forEach(ev => {
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${ev.uid}`);
+    lines.push(`DTSTAMP:${icsDate(todayIso())}T000000Z`);
+    lines.push(`DTSTART;VALUE=DATE:${icsDate(ev.start)}`);
+    lines.push(`DTEND;VALUE=DATE:${icsDate(ev.end)}`);
+    lines.push(`SUMMARY:${icsEscape(ev.summary)}`);
+    lines.push(`DESCRIPTION:${icsEscape(ev.desc)}`);
+    lines.push('END:VEVENT');
+  });
+
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function openIcsModal() {
+  document.getElementById('icsOverlay').classList.add('open');
+}
+function closeIcsModal() {
+  document.getElementById('icsOverlay').classList.remove('open');
+}
+
+function downloadIcs(kind) {
+  const content = buildIcsFile(kind);
+  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  const filename = kind === 'putz' ? 'putzplan-2026.ics' : kind === 'muell' ? 'muelltonnenplan-2026.ics' : 'hausplan-2026-komplett.ics';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  closeIcsModal();
+  showToast('Kalenderdatei heruntergeladen');
+}
+
+// ── Modal-Overlay Klicks für neue Modals ────────────────────────
+document.getElementById('loginOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeLoginModal(); });
+document.getElementById('icsOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeIcsModal(); });
+
+// ── PWA Service Worker ───────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+renderColorGrid();
+renderAll();
+updateAuthUI();
+</script>
+
+</body>
+</html>
+
