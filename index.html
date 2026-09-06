@@ -1023,37 +1023,31 @@ function availableMuellYears() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  JAHRES-RELEVANZ — wer war in einem bestimmten Jahr überhaupt aktiv?
+//  JAHRES-RELEVANZ
 // ════════════════════════════════════════════════════════════════
 
 function isRelevantForYear(p, year) {
-  const yearStart = `${year}-01-01`;
-  const yearEndExclusive = `${year + 1}-01-01`;
+  const yearStart = year + '-01-01';
+  const yearEndExclusive = (year + 1) + '-01-01';
   const startsBeforeYearEnds = !p.activeFrom || p.activeFrom < yearEndExclusive;
   const endsAfterYearStarts = !p.activeUntil || p.activeUntil > yearStart;
   return startsBeforeYearEnds && endsAfterYearStarts;
 }
 
-function yearRelevantParties(year = ACTIVE_YEAR) {
-  return sortedParties().filter(p => isRelevantForYear(p, year));
+function yearRelevantParties(year) {
+  if (typeof year === 'undefined') year = ACTIVE_YEAR;
+  return sortedParties().filter(function(p) { return isRelevantForYear(p, year); });
 }
 
-// Fuer Rotation-Vorschau, Legende, Statistik, Kalender-Auswahl:
-// nur Parteien, die im gewaehlten Jahr ueberhaupt relevant waren.
-// Fuer Nicht-Admins zusaetzlich: aktuell ausgezogene Parteien ausblenden.
 function visibleParties() {
   const relevant = yearRelevantParties(ACTIVE_YEAR);
   if (isAdmin) return relevant;
-  return relevant.filter(p => statusOf(p).label !== 'Ausgezogen');
+  return relevant.filter(function(p) { return statusOf(p).label !== 'Ausgezogen'; });
 }
 
-// Fuer die Verwaltungsliste im Parteien-Tab: Admin sieht IMMER alle
-// jemals angelegten Parteien (unabhaengig vom gewaehlten Jahr), um sie
-// bearbeiten/reaktivieren/loeschen zu koennen. Viewer sieht nur aktuell
-// aktive bzw. zukuenftige Parteien.
 function managedParties() {
   if (isAdmin) return sortedParties();
-  return sortedParties().filter(p => statusOf(p).label !== 'Ausgezogen');
+  return sortedParties().filter(function(p) { return statusOf(p).label !== 'Ausgezogen'; });
 }
 
 
@@ -1088,6 +1082,7 @@ try {
 const REAL_TODAY_YEAR = new Date().getFullYear();
 let ACTIVE_YEAR = Math.max(2026, REAL_TODAY_YEAR);
 let importedPreviewEvents = null;
+let isAdmin = false;
 
 normalizeParties();
 
@@ -1343,8 +1338,7 @@ function getResolvedPlans() {
 // ════════════════════════════════════════════════════════════════
 
 function renderLegends() {
-  const parties = visibleParties();
-  const legHtml = parties.map(p => {
+  const legHtml = visibleParties().map(p => {
     const st = statusOf(p);
     return `
       <div class="leg-item${st.cls === 'chip-red' ? ' gone' : ''}">
@@ -2259,8 +2253,8 @@ function renderMuellEmptyState() {
   if (!grid) return;
   if (getMuellData().length > 0) return;
   const importHint = isAdmin
-    ? `Klicke oben auf <b>"ZKE-Import"</b>, um die .ics-Datei der ZKE Saarbrücken für ${ACTIVE_YEAR} hochzuladen.`
-    : `Der Admin muss die Müllabfuhrtermine für ${ACTIVE_YEAR} zuerst über den ZKE-Import hochladen.`;
+    ? 'Klicke oben auf <b>"ZKE-Import"</b>, um die .ics-Datei der ZKE Saarbrücken für ' + ACTIVE_YEAR + ' hochzuladen.'
+    : 'Der Admin muss die Müllabfuhrtermine für ' + ACTIVE_YEAR + ' zuerst über den ZKE-Import hochladen.';
   grid.innerHTML = `
     <div class="notice notice-orange" style="grid-column:1/-1">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
@@ -2273,9 +2267,9 @@ function updateYearLabels() {
   const planTitle = document.getElementById('planSecTitle');
   const muellTitleEl = document.getElementById('muellSecTitle');
   const statsSubEl = document.getElementById('statsSecSub');
-  if (planTitle) planTitle.textContent = `Hausplan ${ACTIVE_YEAR}`;
-  if (muellTitleEl) muellTitleEl.textContent = `Mülltonnenplan ${ACTIVE_YEAR}`;
-  if (statsSubEl) statsSubEl.textContent = `Übersicht aller Zuständigkeiten ${ACTIVE_YEAR}`;
+  if (planTitle) planTitle.textContent = 'Hausplan ' + ACTIVE_YEAR;
+  if (muellTitleEl) muellTitleEl.textContent = 'Mülltonnenplan ' + ACTIVE_YEAR;
+  if (statsSubEl) statsSubEl.textContent = 'Übersicht aller Zuständigkeiten ' + ACTIVE_YEAR;
 }
 
 function renderAll() {
@@ -2310,7 +2304,6 @@ window.addEventListener('keydown', e => {
 //  FIREBASE CONFIG  ---  HIER DEINE FIREBASE-DATEN EINTRAGEN
 // ════════════════════════════════════════════════════════════════
 const firebaseConfig = {
-const firebaseConfig = {
   apiKey: "AIzaSyCRmEIy2jzoOdVXdGEQQqu7ClnGHPtj5Wc",
   authDomain: "hausplan-bliesweg4a.firebaseapp.com",
   projectId: "hausplan-bliesweg4a",
@@ -2322,7 +2315,6 @@ const firebaseConfig = {
 let fbReady = false;
 let db = null;
 let currentUser = null;
-let isAdmin = false;
 const DOC_PATH = { col: 'hausplan', doc: 'bliesweg4a' };
 
 try {
@@ -2374,8 +2366,6 @@ if (fbReady) {
     if (user) document.getElementById('loggedInEmail').textContent = user.email;
     subscribeToData();
   });
-} else {
-  updateAuthUI();
 }
 
 function openLogin() {
@@ -2482,7 +2472,7 @@ openEdit = function (id) {
 function parseIcsDate(v) {
   const m = String(v).match(/(\d{4})(\d{2})(\d{2})/);
   if (!m) return null;
-  return `${m[1]}-${m[2]}-${m[3]}`;
+  return m[1] + '-' + m[2] + '-' + m[3];
 }
 
 function detectMuellType(summary) {
@@ -2509,7 +2499,7 @@ function parseIcsFile(text) {
     const type = detectMuellType(summary);
     if (!type) return;
     const isHoliday = /feiertag|verschoben|ausnahme/i.test((descMatch ? descMatch[1] : '') + summary);
-    events.push({ iso, type, holiday: isHoliday });
+    events.push({ iso: iso, type: type, holiday: isHoliday });
   });
   events.sort((a, b) => a.iso.localeCompare(b.iso));
   return events;
@@ -2518,7 +2508,7 @@ function parseIcsFile(text) {
 function lastAssignedBeforeYear(year) {
   const years = availableMuellYears().filter(y => y < year);
   if (!years.length) return null;
-  const prevYear = Math.max(...years);
+  const prevYear = Math.max.apply(null, years);
   const prevEvents = (muellDataByYear[prevYear] || []).filter(e => e.pid).slice();
   if (!prevEvents.length) return null;
   return prevEvents[prevEvents.length - 1].pid;
@@ -2529,8 +2519,8 @@ function buildMuellEntriesFromIcs(events, year) {
   return events.map(ev => {
     const iso = ev.iso;
     const m = parseInt(iso.slice(5, 7), 10) - 1;
-    const d = `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
-    const entry = { m, d, type: ev.type, pid: null };
+    const d = iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.';
+    const entry = { m: m, d: d, type: ev.type, pid: null };
     if (ev.holiday) entry.f = true;
     if (ev.type === 'Gelbe Tonne' || ev.type === 'Papiertonne') {
       const actives = activeIds(iso);
@@ -2581,7 +2571,7 @@ function handleMuellImportFile(evt) {
           <div style="flex:1">${esc(e.type)}${e.holiday ? ' <span class="chip chip-orange">Feiertag</span>' : ''}</div>
         </div>
       `).join('');
-      document.getElementById('muellImportSummary').textContent = `${events.length} Termine erkannt.`;
+      document.getElementById('muellImportSummary').textContent = events.length + ' Termine erkannt.';
       document.getElementById('muellImportPreview').style.display = 'block';
       document.getElementById('muellImportSaveBtn').style.display = 'inline-flex';
     } catch (e) {
@@ -2611,16 +2601,18 @@ function saveMuellImport() {
   ACTIVE_YEAR = yearInput;
   closeMuellImport();
   renderAll();
-  showToast(`Mülltonnenplan ${yearInput} importiert (${entries.length} Termine)`);
+  showToast('Mülltonnenplan ' + yearInput + ' importiert (' + entries.length + ' Termine)');
 }
 
 function icsEscape(s) {
-  return String(s || '').replace(/[\\,;]/g, m => '\\' + m).replace(/\n/g, '\\n');
+  return String(s || '').replace(/[\\,;]/g, function(m) { return '\\' + m; }).replace(/\n/g, '\\n');
 }
 function icsDate(iso) { return iso.replace(/-/g, ''); }
 
 function buildIcsEvents(kind) {
-  const { putzMap, muellMap } = getResolvedPlans();
+  const resolved = getResolvedPlans();
+  const putzMap = resolved.putzMap;
+  const muellMap = resolved.muellMap;
   const events = [];
   const putzData = getPutzData();
   const muellData = getMuellData();
@@ -2628,16 +2620,16 @@ function buildIcsEvents(kind) {
 
   if (kind === 'putz' || kind === 'all') {
     putzData.forEach((e, idx) => {
-      const assignedId = putzMap.get(`p${idx}`);
+      const assignedId = putzMap.get('p' + idx);
       if (filterPartyId && assignedId !== filterPartyId) return;
       const p = assignedId && P(assignedId);
       const endIso = addDaysIso(e.iso, 7);
       events.push({
-        uid: `putz-${e.iso}@hausplan-bliesweg4a`,
+        uid: 'putz-' + e.iso + '@hausplan-bliesweg4a',
         start: e.iso,
         end: endIso,
-        summary: `Putzwoche KW ${e.kw}${p ? ' – ' + p.name : ''}`,
-        desc: `Treppenhaus-Putzplan · Zeitraum ${e.dates}${p ? ' · Zuständig: ' + p.name : ''}`
+        summary: 'Putzwoche KW ' + e.kw + (p ? ' – ' + p.name : ''),
+        desc: 'Treppenhaus-Putzplan · Zeitraum ' + e.dates + (p ? ' · Zuständig: ' + p.name : '')
       });
     });
   }
@@ -2645,15 +2637,15 @@ function buildIcsEvents(kind) {
   if (kind === 'muell' || kind === 'all') {
     muellData.forEach((e, idx) => {
       if (!e.pid) return;
-      const iso = `${ACTIVE_YEAR}-${String(e.m + 1).padStart(2, '0')}-${String(parseInt(e.d, 10)).padStart(2, '0')}`;
-      const assignedId = muellMap.get(`m${idx}`);
+      const iso = ACTIVE_YEAR + '-' + String(e.m + 1).padStart(2, '0') + '-' + String(parseInt(e.d, 10)).padStart(2, '0');
+      const assignedId = muellMap.get('m' + idx);
       const p = assignedId && P(assignedId);
       events.push({
-        uid: `muell-${idx}-${iso}@hausplan-bliesweg4a`,
+        uid: 'muell-' + idx + '-' + iso + '@hausplan-bliesweg4a',
         start: iso,
         end: addDaysIso(iso, 1),
-        summary: `${e.type} rausstellen${p ? ' – ' + p.name : ''}`,
-        desc: `Mülltonnenplan · ${e.type}${p ? ' · Zuständig: ' + p.name : ''}${e.f ? ' · Feiertagsabweichung' : ''}`
+        summary: e.type + ' rausstellen' + (p ? ' – ' + p.name : ''),
+        desc: 'Mülltonnenplan · ' + e.type + (p ? ' · Zuständig: ' + p.name : '') + (e.f ? ' · Feiertagsabweichung' : '')
       });
     });
   }
@@ -2666,12 +2658,12 @@ function buildIcsFile(kind) {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Hausplan Bliesweg 4a//DE', 'CALSCALE:GREGORIAN'];
   events.forEach(ev => {
     lines.push('BEGIN:VEVENT');
-    lines.push(`UID:${ev.uid}`);
-    lines.push(`DTSTAMP:${icsDate(todayIso())}T000000Z`);
-    lines.push(`DTSTART;VALUE=DATE:${icsDate(ev.start)}`);
-    lines.push(`DTEND;VALUE=DATE:${icsDate(ev.end)}`);
-    lines.push(`SUMMARY:${icsEscape(ev.summary)}`);
-    lines.push(`DESCRIPTION:${icsEscape(ev.desc)}`);
+    lines.push('UID:' + ev.uid);
+    lines.push('DTSTAMP:' + icsDate(todayIso()) + 'T000000Z');
+    lines.push('DTSTART;VALUE=DATE:' + icsDate(ev.start));
+    lines.push('DTEND;VALUE=DATE:' + icsDate(ev.end));
+    lines.push('SUMMARY:' + icsEscape(ev.summary));
+    lines.push('DESCRIPTION:' + icsEscape(ev.desc));
     lines.push('END:VEVENT');
   });
   lines.push('END:VCALENDAR');
@@ -2687,7 +2679,7 @@ function closeIcsModal() { document.getElementById('icsOverlay').classList.remov
 function downloadIcs(kind) {
   const content = buildIcsFile(kind);
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-  const filename = kind === 'putz' ? `putzplan-${ACTIVE_YEAR}.ics` : kind === 'muell' ? `muelltonnenplan-${ACTIVE_YEAR}.ics` : `hausplan-${ACTIVE_YEAR}-komplett.ics`;
+  const filename = kind === 'putz' ? 'putzplan-' + ACTIVE_YEAR + '.ics' : kind === 'muell' ? 'muelltonnenplan-' + ACTIVE_YEAR + '.ics' : 'hausplan-' + ACTIVE_YEAR + '-komplett.ics';
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;
