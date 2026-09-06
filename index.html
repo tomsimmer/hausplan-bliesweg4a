@@ -543,7 +543,7 @@ body {
 
 <!-- OVERVIEW -->
 <div class="panel active" id="panel-plan">
-  <div class="sec-title">Hausplan 2026</div>
+  <div class="sec-title" id="planSecTitle">Hausplan 2026</div>
   <div class="sec-sub">Erstansicht im PDF-Stil · danach kannst du alles bearbeiten</div>
   <div id="planPreview"></div>
 </div>
@@ -577,7 +577,7 @@ body {
 
 <!-- MÜLLTONNEN -->
 <div class="panel" id="panel-muellplan">
-  <div class="sec-title">Mülltonnenplan 2026</div>
+  <div class="sec-title" id="muellSecTitle">Mülltonnenplan 2026</div>
   <div class="sec-sub">Alle Abfuhrtermine · Nur markierte Tonnen rausstellen</div>
   <div class="legend" id="lgMuell"></div>
   <div class="months-grid" id="monthsGrid"></div>
@@ -602,7 +602,7 @@ body {
 <!-- STATISTIK -->
 <div class="panel" id="panel-statistik">
   <div class="sec-title">Fairness &amp; Statistik</div>
-  <div class="sec-sub">Übersicht aller Zuständigkeiten 2026</div>
+  <div class="sec-sub" id="statsSecSub">Übersicht aller Zuständigkeiten 2026</div>
   <div class="stats-grid" id="statsGrid"></div>
   <div style="font-size:12px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Putzplan · Einsätze je Partei</div>
   <div class="fair-card" id="putzFairness"></div>
@@ -974,7 +974,6 @@ const ROTATION_EPOCH_ISO = '2026-01-05';
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 
-// Korrekte ISO-8601 Berechnung: der 4. Januar liegt IMMER in KW1.
 function mondayOfIsoWeek(year, week) {
   const jan4 = new Date(Date.UTC(year, 0, 4));
   const jan4Dow = jan4.getUTCDay() || 7;
@@ -1395,7 +1394,7 @@ function renderOverview() {
 
 function renderPutzplan() {
   const { putzMap } = getResolvedPlans();
-  document.getElementById('putzSub').textContent = 'Gerade Kalenderwochen 2026 · Bei Änderungen wird ab dem jeweiligen Datum neu rotiert';
+  document.getElementById('putzSub').textContent = `Gerade Kalenderwochen ${ACTIVE_YEAR} · Bei Änderungen wird ab dem jeweiligen Datum neu rotiert`;
 
   const changes = sortedParties().filter(p => p.activeFrom || p.activeUntil);
   const banner = document.getElementById('putzBanner');
@@ -1498,17 +1497,27 @@ function renderMuellplan() {
 //  PARTEIEN
 // ════════════════════════════════════════════════════════════════
 
+function visibleParties() {
+  const all = sortedParties();
+  if (isAdmin) return all;
+  return all.filter(p => statusOf(p).label !== 'Ausgezogen');
+}
+
 function renderRotationPreview() {
-  const sorted = sortedParties();
-  const html = [`<span class="rot-label">Rotation</span>`];
+  const sorted = visibleParties();
+  const htmlParts = [`<span class="rot-label">Rotation</span>`];
 
   sorted.forEach((p, i) => {
     const st = statusOf(p);
-    html.push(`${badge(p.id, true)}${st.cls !== 'chip-green' ? ` <span class="chip ${st.cls}">${st.label}</span>` : ''}`);
-    if (i < sorted.length - 1) html.push(`<span class="rot-arrow">→</span>`);
+    htmlParts.push(`${badge(p.id, true)}${st.cls !== 'chip-green' ? ` <span class="chip ${st.cls}">${st.label}</span>` : ''}`);
+    if (i < sorted.length - 1) htmlParts.push(`<span class="rot-arrow">→</span>`);
   });
 
-  document.getElementById('rotPreview').innerHTML = html.join(' ');
+  if (!sorted.length) {
+    htmlParts.push(`<span style="font-size:13px;color:var(--label2)">Keine aktiven Mietparteien</span>`);
+  }
+
+  document.getElementById('rotPreview').innerHTML = htmlParts.join(' ');
 }
 
 function moveParty(fromIdx, toIdx) {
@@ -1525,7 +1534,7 @@ function renderParties() {
   renderRotationPreview();
 
   const list = document.getElementById('partiesList');
-  const sorted = sortedParties();
+  const sorted = visibleParties();
 
   list.innerHTML = sorted.map((p, idx) => {
     const st = statusOf(p);
@@ -1882,7 +1891,7 @@ function buildExportPagesHTML() {
   const header = `
     <div class="doc-head">
       <div>
-        <div class="doc-title">Hausplan 2026</div>
+        <div class="doc-title">Hausplan ${ACTIVE_YEAR}</div>
         <div class="doc-sub">Bliesweg 4a · Ansicht wie in der Vorlage, aber live bearbeitbar</div>
       </div>
       <div class="doc-meta">
@@ -1914,7 +1923,7 @@ function buildExportPagesHTML() {
 
   const putzTitle = (cont = false) => `
     <div class="doc-sec-title">Putzplan Treppenhaus</div>
-    <div class="doc-sec-sub">Gerade Kalenderwochen 2026 · ${cont ? 'Fortsetzung' : 'Änderungen werden automatisch neu rotiert'}</div>
+    <div class="doc-sec-sub">Gerade Kalenderwochen ${ACTIVE_YEAR} · ${cont ? 'Fortsetzung' : 'Änderungen werden automatisch neu rotiert'}</div>
   `;
 
   const putzCard = (start, end) => `
@@ -1932,7 +1941,7 @@ function buildExportPagesHTML() {
   `;
 
   const muellTitle = (cont = false) => `
-    <div class="doc-sec-title">Mülltonnenplan 2026</div>
+    <div class="doc-sec-title">Mülltonnenplan ${ACTIVE_YEAR}</div>
     <div class="doc-sec-sub">${cont ? 'Fortsetzung · Nur Gelbe Tonne und Papiertonne aktiv rausstellen' : 'Nur Gelbe Tonne und Papiertonne aktiv rausstellen'}</div>
   `;
 
@@ -1942,9 +1951,9 @@ function buildExportPagesHTML() {
 
   const statsPage = `
     <div class="doc-sec-title">Fairness & Statistik</div>
-    <div class="doc-sec-sub">Übersicht aller Zuständigkeiten 2026</div>
+    <div class="doc-sec-sub">Übersicht aller Zuständigkeiten ${ACTIVE_YEAR}</div>
     ${buildPlanStats(putzMap, muellMap)}
-    <div class="doc-foot">Bliesweg 4a · Hausplan 2026</div>
+    <div class="doc-foot">Bliesweg 4a · Hausplan ${ACTIVE_YEAR}</div>
   `;
 
   return [
@@ -2023,7 +2032,7 @@ function buildPlanHTML() {
       <div class="doc-sheet">
         <div class="doc-head">
           <div>
-            <div class="doc-title">Hausplan 2026</div>
+            <div class="doc-title">Hausplan ${ACTIVE_YEAR}</div>
             <div class="doc-sub">Bliesweg 4a · Ansicht wie in der Vorlage, aber live bearbeitbar</div>
           </div>
           <div class="doc-meta">
@@ -2051,7 +2060,7 @@ function buildPlanHTML() {
         </div>
 
         <div class="doc-sec-title">Putzplan Treppenhaus</div>
-        <div class="doc-sec-sub">Gerade Kalenderwochen 2026 · Änderungen werden automatisch neu rotiert</div>
+        <div class="doc-sec-sub">Gerade Kalenderwochen ${ACTIVE_YEAR} · Änderungen werden automatisch neu rotiert</div>
         <section class="doc-card">
           <div class="doc-card-h">Wochenübersicht</div>
           <div class="doc-card-b" style="padding:0">
@@ -2064,14 +2073,14 @@ function buildPlanHTML() {
           </div>
         </section>
 
-        <div class="doc-sec-title">Mülltonnenplan 2026</div>
+        <div class="doc-sec-title">Mülltonnenplan ${ACTIVE_YEAR}</div>
         <div class="doc-sec-sub">Nur Gelbe Tonne und Papiertonne aktiv rausstellen</div>
         <div class="doc-months">
           ${MONTHS.map((_, m) => buildPlanMonth(m, muellMap)).join('')}
         </div>
 
         ${buildPlanStats(putzMap, muellMap)}
-        <div class="doc-foot">Bliesweg 4a · Hausplan 2026</div>
+        <div class="doc-foot">Bliesweg 4a · Hausplan ${ACTIVE_YEAR}</div>
       </div>
     </div>
   `;
@@ -2083,7 +2092,7 @@ function renderPlanPreview() {
 }
 
 function buildPrintDocument() {
-  return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Hausplan 2026 – Druckansicht</title><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Hausplan ${ACTIVE_YEAR} – Druckansicht</title><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>
     @page { size: A4; margin: 12mm; }
     html,body{margin:0;padding:0;background:#eef1f5;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#111827}
     body{padding:0} .doc-wrap{padding:0} .doc-sheet{background:#fff;padding:0;border-radius:0;box-shadow:none;border:none} .doc-sheet::before{display:none}
@@ -2157,7 +2166,7 @@ async function exportPDF() {
     stage.remove();
 
     const blob = pdf.output('blob');
-    const filename = 'hausplan-2026-bliesweg-4a.pdf';
+    const filename = `hausplan-${ACTIVE_YEAR}-bliesweg-4a.pdf`;
 
     if (navigator.share && window.File) {
       try {
@@ -2212,7 +2221,7 @@ function renderIcsPartySelect() {
   if (!sel) return;
   const current = sel.value;
   sel.innerHTML = '<option value="">Alle Termine (kompletter Putzplan)</option>' +
-    sortedParties().map(p => `<option value="${esc(p.id)}">${esc(p.name)} (nur eigene Termine)</option>`).join('');
+    visibleParties().map(p => `<option value="${esc(p.id)}">${esc(p.name)} (nur eigene Termine)</option>`).join('');
   if (current) sel.value = current;
 }
 
@@ -2231,9 +2240,19 @@ function renderMuellEmptyState() {
   `;
 }
 
+function updateYearLabels() {
+  const planTitle = document.getElementById('planSecTitle');
+  const muellTitleEl = document.getElementById('muellSecTitle');
+  const statsSubEl = document.getElementById('statsSecSub');
+  if (planTitle) planTitle.textContent = `Hausplan ${ACTIVE_YEAR}`;
+  if (muellTitleEl) muellTitleEl.textContent = `Mülltonnenplan ${ACTIVE_YEAR}`;
+  if (statsSubEl) statsSubEl.textContent = `Übersicht aller Zuständigkeiten ${ACTIVE_YEAR}`;
+}
+
 function renderAll() {
   normalizeParties();
   renderYearSelect();
+  updateYearLabels();
   renderIcsPartySelect();
   renderPlanPreview();
   renderLegends();
@@ -2299,16 +2318,18 @@ function updateAuthUI() {
     if (navAddPartyBtn) navAddPartyBtn.style.display = 'inline-flex';
     if (viewerNotice) viewerNotice.style.display = 'none';
     if (importMuellBtn) importMuellBtn.style.display = 'inline-flex';
-    document.querySelectorAll('.prow').forEach(r => r.style.cursor = 'grab');
   } else {
     loginLabel.textContent = 'Admin';
     if (addPartyBtn) addPartyBtn.style.display = 'none';
     if (navAddPartyBtn) navAddPartyBtn.style.display = 'none';
     if (viewerNotice) viewerNotice.style.display = 'flex';
     if (importMuellBtn) importMuellBtn.style.display = 'none';
-    document.querySelectorAll('.prow').forEach(r => { r.style.cursor = 'default'; r.setAttribute('draggable', 'false'); });
   }
-  renderMuellEmptyState();
+  renderAll();
+  document.querySelectorAll('.prow').forEach(r => {
+    if (isAdmin) { r.style.cursor = 'grab'; r.setAttribute('draggable', 'true'); }
+    else { r.style.cursor = 'default'; r.setAttribute('draggable', 'false'); }
+  });
 }
 
 if (fbReady) {
