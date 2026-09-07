@@ -1022,6 +1022,20 @@ function availableMuellYears() {
   return Object.keys(muellDataByYear).map(y => parseInt(y, 10)).sort((a, b) => a - b);
 }
 
+function isRelevantForYear(p, year) {
+  const yearStart = year + '-01-01';
+  const yearEndExclusive = (year + 1) + '-01-01';
+  const startsBeforeYearEnds = !p.activeFrom || p.activeFrom < yearEndExclusive;
+  const endsAfterYearStarts = !p.activeUntil || p.activeUntil > yearStart;
+  return startsBeforeYearEnds && endsAfterYearStarts;
+}
+
+function yearRelevantParties(year) {
+  const y = (typeof year === 'undefined') ? ACTIVE_YEAR : year;
+  return sortedParties().filter(function (p) { return isRelevantForYear(p, y); });
+}
+
+
 
 // ════════════════════════════════════════════════════════════════
 //  STATE
@@ -1309,7 +1323,7 @@ function getResolvedPlans() {
 // ════════════════════════════════════════════════════════════════
 
 function renderLegends() {
-  const html = sortedParties().map(p => {
+  const legHtml = visibleParties().map(p => {
     const st = statusOf(p);
     return `
       <div class="leg-item${st.cls === 'chip-red' ? ' gone' : ''}">
@@ -1322,7 +1336,7 @@ function renderLegends() {
 
   ['lgOverview', 'lgPutz', 'lgMuell'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
+    if (el) el.innerHTML = legHtml;
   });
 }
 
@@ -1498,9 +1512,14 @@ function renderMuellplan() {
 // ════════════════════════════════════════════════════════════════
 
 function visibleParties() {
-  const all = sortedParties();
-  if (isAdmin) return all;
-  return all.filter(p => statusOf(p).label !== 'Ausgezogen');
+  const relevant = yearRelevantParties(ACTIVE_YEAR);
+  if (isAdmin) return relevant;
+  return relevant.filter(function (p) { return statusOf(p).label !== 'Ausgezogen'; });
+}
+
+function managedParties() {
+  if (isAdmin) return sortedParties();
+  return sortedParties().filter(function (p) { return statusOf(p).label !== 'Ausgezogen'; });
 }
 
 function renderRotationPreview() {
@@ -1534,7 +1553,7 @@ function renderParties() {
   renderRotationPreview();
 
   const list = document.getElementById('partiesList');
-  const sorted = visibleParties();
+  const sorted = managedParties();
 
   list.innerHTML = sorted.map((p, idx) => {
     const st = statusOf(p);
@@ -1609,7 +1628,7 @@ function countAssignments(map) {
 
 function renderFairnessCard(elId, title, counts) {
   const el = document.getElementById(elId);
-  const sorted = sortedParties();
+  const sorted = visibleParties();
   const max = Math.max(1, ...sorted.map(p => counts[p.id] || 0));
 
   el.innerHTML = `
@@ -1635,8 +1654,8 @@ function renderStats() {
   const putzCounts = countAssignments(putzMap);
   const muellCounts = countAssignments(muellMap);
 
-  const activeNow = sortedParties().filter(p => isActiveOn(p, todayIso())).length;
-  const totalParties = sortedParties().length;
+  const activeNow = visibleParties().filter(p => isActiveOn(p, todayIso())).length;
+  const totalParties = visibleParties().length;
   const putzTotal = [...putzMap.values()].filter(Boolean).length;
   const muellTotal = [...muellMap.values()].filter(Boolean).length;
   const feiertage = getMuellData().filter(e => e.f).length;
