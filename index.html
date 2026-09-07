@@ -475,11 +475,13 @@ body {
   .btn-sm { padding: 6px 10px; font-size: 13px; }
   #yearSelect { padding: 6px 8px 6px 10px !important; font-size: 13px; min-width: 0; }
   .btn-sm svg { flex-shrink: 0; }
+  .dash-grid { grid-template-columns: 1fr 1fr !important; }
 }
 @media (max-width: 420px) {
   .nav { gap: 6px; padding: 6px calc(12px + env(safe-area-inset-right)) 6px calc(12px + env(safe-area-inset-left)); }
   .nav-title { font-size: 14px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .btn-label { display: none; }
+  .dash-grid { grid-template-columns: 1fr !important; }
 }
 </style>
 </head>
@@ -513,13 +515,13 @@ body {
 
 <!-- Tabs -->
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('plan',this)">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    Plan
-  </button>
-  <button class="tab" onclick="switchTab('overview',this)">
+  <button class="tab active" onclick="switchTab('overview',this)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
     Übersicht
+  </button>
+  <button class="tab" onclick="switchTab('plan',this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Plan
   </button>
   <button class="tab" onclick="switchTab('putzplan',this)">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -541,29 +543,43 @@ body {
 
 <main class="page">
 
-<!-- OVERVIEW -->
-<div class="panel active" id="panel-plan">
-  <div class="sec-title" id="planSecTitle">Hausplan 2026</div>
-  <div class="sec-sub">Erstansicht im PDF-Stil · danach kannst du alles bearbeiten</div>
-  <div id="planPreview"></div>
-</div>
+<!-- OVERVIEW / DASHBOARD -->
+<div class="panel active" id="panel-overview">
+  <div class="sec-title">Übersicht</div>
+  <div class="sec-sub" id="dashSecSub">Alle wichtigen Infos auf einen Blick</div>
 
-<div class="panel" id="panel-overview">
-  <div class="sec-title">Nächste Termine</div>
-  <div class="sec-sub">Anstehende Aufgaben · Nur Gelbe Tonne und Papiertonne rausstellen</div>
-  <div class="upcoming-grid" id="upcomingGrid"></div>
-  <div class="week-banner" id="weekBanner">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+  <div class="dash-hero">
     <div>
-      <div class="wb-title" id="wbTitle"></div>
-      <div class="wb-sub"   id="wbSub"></div>
+      <div class="dash-hero-title" id="dashHeroTitle">Willkommen zurück</div>
+      <div class="dash-hero-sub" id="dashHeroSub"></div>
     </div>
+    <div class="dash-hero-year" id="dashHeroYear"></div>
   </div>
+
+  <div class="dash-grid" id="dashStatsGrid"></div>
+
+  <div class="dash-quicklinks">
+    <button class="dash-qlink" onclick="switchTabByName('putzplan')">🧹 Putzplan öffnen</button>
+    <button class="dash-qlink" onclick="switchTabByName('muellplan')">🗑️ Mülltonnen öffnen</button>
+    <button class="dash-qlink" onclick="switchTabByName('parteien')">👥 Parteien verwalten</button>
+    <button class="dash-qlink" onclick="openIcsModal()">📅 In Kalender exportieren</button>
+  </div>
+
+  <div class="dash-section-title">Nächste Termine</div>
+  <div class="dash-timeline" id="dashTimeline"></div>
+
   <div class="notice notice-blue">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span>Restmüll und Biomüll werden automatisch abgeholt und müssen <b>nicht</b> rausgestellt werden. &nbsp;<span style="color:var(--orange)">*</span> = Feiertagsabweichung</span>
   </div>
   <div class="legend" id="lgOverview"></div>
+</div>
+
+<!-- PLAN (PDF-Vorschau) -->
+<div class="panel" id="panel-plan">
+  <div class="sec-title" id="planSecTitle">Hausplan 2026</div>
+  <div class="sec-sub">Erstansicht im PDF-Stil · danach kannst du alles bearbeiten</div>
+  <div id="planPreview"></div>
 </div>
 
 <!-- PUTZPLAN -->
@@ -726,25 +742,25 @@ body {
           <div class="avatar" style="background:var(--blue)">🧹</div>
           <div class="pinfo">
             <div class="pname">Putzplan Treppenhaus</div>
-            <div class="pdetail">Termine des angezeigten Jahres, ggf. gefiltert auf deine Auswahl oben</div>
+            <div class="pdetail">Nur zukünftige Termine, ggf. gefiltert auf deine Auswahl oben</div>
           </div>
         </div>
         <div class="prow" onclick="downloadIcs('muell')" style="cursor:pointer">
           <div class="avatar" style="background:var(--orange)">🗑️</div>
           <div class="pinfo">
             <div class="pname">Mülltonnenplan</div>
-            <div class="pdetail">Nur Gelbe Tonne &amp; Papiertonne – jeweils mit zuständiger Partei im Termin</div>
+            <div class="pdetail">Nur zukünftige Termine (Gelbe Tonne &amp; Papiertonne) mit zuständiger Partei</div>
           </div>
         </div>
         <div class="prow" onclick="downloadIcs('all')" style="cursor:pointer">
           <div class="avatar" style="background:var(--green)">📅</div>
           <div class="pinfo">
             <div class="pname">Beides</div>
-            <div class="pdetail">Putzplan + Mülltonnen in einer Datei</div>
+            <div class="pdetail">Putzplan + Mülltonnen, nur zukünftige Termine, in einer Datei</div>
           </div>
         </div>
       </div>
-      <div class="f-hint">Die .ics-Datei kann in Apple Kalender, Google Kalender oder Outlook importiert werden.</div>
+      <div class="f-hint">Vergangene Termine werden nicht exportiert. Die .ics-Datei kann in Apple Kalender, Google Kalender oder Outlook importiert werden.</div>
     </div>
     <div class="sheet-foot">
       <button class="btn btn-fill" onclick="closeIcsModal()">Schließen</button>
@@ -1034,7 +1050,6 @@ function yearRelevantParties(year) {
   const y = (typeof year === 'undefined') ? ACTIVE_YEAR : year;
   return sortedParties().filter(function (p) { return isRelevantForYear(p, y); });
 }
-
 
 
 // ════════════════════════════════════════════════════════════════
@@ -1347,58 +1362,153 @@ function renderLegends() {
 function renderOverview() {
   const { muellMap, putzMap } = getResolvedPlans();
   const today = todayIso();
+  const putzData = getPutzData();
+  const muellData = getMuellData();
 
-  const upcoming = [];
-  getMuellData().forEach((e, idx) => {
+  // ── Hero ──
+  const heroTitle = document.getElementById('dashHeroTitle');
+  const heroSub = document.getElementById('dashHeroSub');
+  const heroYear = document.getElementById('dashHeroYear');
+  if (heroTitle) heroTitle.textContent = `Bliesweg 4a · KW ${getKW()}`;
+  if (heroSub) heroSub.textContent = `Stand ${fmt(today)} · ${visibleParties().length} aktive Mietparteien`;
+  if (heroYear) heroYear.textContent = ACTIVE_YEAR;
+
+  // ── Aktuelle / nächste Putzwoche ──
+  const currentPutz = putzData.find(s => today >= s.iso && today <= addDaysIso(s.iso, 6));
+  const nextPutz = putzData.find(s => s.iso > today);
+  let putzCardVal = 'Keine Putzwoche';
+  let putzCardSub = '';
+  let putzCardColor = 'var(--label3)';
+  if (currentPutz) {
+    const idx = putzData.indexOf(currentPutz);
+    const pid = putzMap.get(`p${idx}`);
+    const p = pid && P(pid);
+    if (p) {
+      putzCardVal = p.name;
+      putzCardSub = `KW ${currentPutz.kw} · ${currentPutz.dates} · jetzt`;
+      putzCardColor = p.color;
+    }
+  } else if (nextPutz) {
+    const idx = putzData.indexOf(nextPutz);
+    const pid = putzMap.get(`p${idx}`);
+    const p = pid && P(pid);
+    if (p) {
+      putzCardVal = p.name;
+      putzCardSub = `KW ${nextPutz.kw} · ab ${fmt(nextPutz.iso)}`;
+      putzCardColor = p.color;
+    }
+  }
+
+  // ── Nächster Mülltermin (nur Zukunft, nur Gelbe/Papier mit Partei) ──
+  const upcomingMuell = [];
+  muellData.forEach((e, idx) => {
     if (!e.pid) return;
     const iso = muellIso(e);
     if (iso < today) return;
     const resolvedId = muellMap.get(`m${idx}`);
     if (!resolvedId) return;
-    upcoming.push({ ...e, iso, dayN: parseInt(e.d, 10), resolvedId });
+    upcomingMuell.push({ ...e, iso, resolvedId });
   });
+  upcomingMuell.sort((a, b) => a.iso.localeCompare(b.iso));
+  const nextMuell = upcomingMuell[0];
+  let muellCardVal = 'Kein Termin';
+  let muellCardSub = '';
+  let muellCardColor = 'var(--label3)';
+  if (nextMuell) {
+    const p = P(nextMuell.resolvedId);
+    if (p) {
+      muellCardVal = nextMuell.type;
+      muellCardSub = `${fmt(nextMuell.iso)} · ${p.name}`;
+      muellCardColor = p.color;
+    }
+  }
 
-  document.getElementById('upcomingGrid').innerHTML = upcoming.slice(0, 6).map(e => {
-    const p = P(e.resolvedId);
-    if (!p) return '';
-    return `
-      <div class="uc" style="border-top-color:${p.color}">
-        <div class="uc-day" style="color:${p.color}">${String(e.dayN).padStart(2, '0')}</div>
-        <div class="uc-month">${MONTHS[e.m]} 2026</div>
-        <div class="uc-type">${esc(e.type)}</div>
-        <div class="uc-party" style="color:${p.color}">${esc(p.name)}</div>
-        ${e.f ? `<div class="uc-ft">* Feiertagstermin</div>` : ''}
+  // ── Stat-Karten ──
+  const grid = document.getElementById('dashStatsGrid');
+  if (grid) {
+    grid.innerHTML = `
+      <div class="dash-card" style="border-top-color:${putzCardColor}">
+        <div class="dash-card-lbl">🧹 Putzwoche</div>
+        <div>
+          <div class="dash-card-val" style="color:${putzCardColor}">${esc(putzCardVal)}</div>
+          <div class="dash-card-sub">${esc(putzCardSub)}</div>
+        </div>
+      </div>
+      <div class="dash-card" style="border-top-color:${muellCardColor}">
+        <div class="dash-card-lbl">🗑️ Nächste Tonne</div>
+        <div>
+          <div class="dash-card-val" style="color:${muellCardColor}">${esc(muellCardVal)}</div>
+          <div class="dash-card-sub">${esc(muellCardSub)}</div>
+        </div>
+      </div>
+      <div class="dash-card" style="border-top-color:var(--blue)">
+        <div class="dash-card-lbl">👥 Mietparteien</div>
+        <div>
+          <div class="dash-card-val">${visibleParties().length} aktiv</div>
+          <div class="dash-card-sub">${esc(visibleParties().map(p => p.name).join(', ') || 'Keine')}</div>
+        </div>
+      </div>
+      <div class="dash-card" style="border-top-color:var(--purple)">
+        <div class="dash-card-lbl">📅 Jahr</div>
+        <div>
+          <div class="dash-card-val">${ACTIVE_YEAR}</div>
+          <div class="dash-card-sub">${putzData.length} Putzwochen geplant</div>
+        </div>
       </div>
     `;
-  }).join('') || `<p style="color:var(--label2);font-size:14px;grid-column:1/-1">Keine weiteren Termine für 2026.</p>`;
+  }
 
-  const currentPutz = getPutzData().find(s => today >= s.iso && today <= addDaysIso(s.iso, 6));
-  const nextPutz = getPutzData().find(s => s.iso > today);
-  const kw = getKW();
+  // ── Timeline: nächste Termine (Putz + Müll gemischt, nur Zukunft) ──
+  const timelineItems = [];
 
-  const wb = document.getElementById('weekBanner');
-  const t = document.getElementById('wbTitle');
-  const s2 = document.getElementById('wbSub');
+  putzData.forEach((e, idx) => {
+    if (e.iso < today) return;
+    const pid = putzMap.get(`p${idx}`);
+    const p = pid && P(pid);
+    if (!p) return;
+    timelineItems.push({
+      iso: e.iso,
+      icon: '🧹',
+      type: `Putzwoche KW ${e.kw}`,
+      meta: `${e.dates} · ${p.name}`,
+      color: p.color
+    });
+  });
 
-  wb.style.display = 'flex';
+  upcomingMuell.forEach(e => {
+    const p = P(e.resolvedId);
+    if (!p) return;
+    timelineItems.push({
+      iso: e.iso,
+      icon: '🗑️',
+      type: e.type,
+      meta: `${fmt(e.iso)} · ${p.name}${e.f ? ' · Feiertagsabweichung' : ''}`,
+      color: p.color
+    });
+  });
 
-  if (currentPutz) {
-    const idx = getPutzData().indexOf(currentPutz);
-    const id = putzMap.get(`p${idx}`);
-    const p = id && P(id);
-    if (p) {
-      t.innerHTML = `KW ${currentPutz.kw} · Putzwoche — <span style="color:${p.color};font-weight:700">${esc(p.name)}</span> ist dran`;
-      s2.textContent = currentPutz.dates;
-    } else {
-      t.textContent = `KW ${currentPutz.kw} · Putzwoche — Keine Partei zugewiesen`;
-      s2.textContent = currentPutz.dates;
-    }
-  } else if (nextPutz) {
-    t.textContent = `KW ${kw} · Diese Woche keine Putzwoche`;
-    s2.textContent = `Nächste Putzwoche: KW ${nextPutz.kw} · ${nextPutz.dates}`;
-  } else {
-    t.textContent = `KW ${kw} · Keine weiteren Putzwochen`;
-    s2.textContent = '';
+  timelineItems.sort((a, b) => a.iso.localeCompare(b.iso));
+
+  const timelineEl = document.getElementById('dashTimeline');
+  if (timelineEl) {
+    const top = timelineItems.slice(0, 8);
+    timelineEl.innerHTML = top.map(item => {
+      const d = parseD(item.iso);
+      const day = d ? String(d.getDate()).padStart(2, '0') : '--';
+      const monShort = d ? MONTHS[d.getMonth()].slice(0, 3) : '';
+      return `
+        <div class="dash-tl-row">
+          <div class="dash-tl-date" style="background:${item.color}22">
+            <div class="dash-tl-day" style="color:${item.color}">${day}</div>
+            <div class="dash-tl-mon">${monShort}</div>
+          </div>
+          <div class="dash-tl-body">
+            <div class="dash-tl-type">${item.icon} ${esc(item.type)}</div>
+            <div class="dash-tl-meta">${esc(item.meta)}</div>
+          </div>
+        </div>
+      `;
+    }).join('') || `<p style="color:var(--label2);font-size:14px">Keine weiteren Termine für ${ACTIVE_YEAR}.</p>`;
   }
 }
 
@@ -1833,6 +1943,11 @@ function switchTab(name, btn) {
   if (panel) panel.classList.add('active');
 }
 
+function switchTabByName(name) {
+  const btn = Array.from(document.querySelectorAll('.tab')).find(t => t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${name}'`));
+  switchTab(name, btn);
+}
+
 // ════════════════════════════════════════════════════════════════
 //  PDF EXPORT
 // ════════════════════════════════════════════════════════════════
@@ -2123,7 +2238,53 @@ function buildPrintDocument() {
     .doc-month{border:1px solid rgba(15,23,42,.08);border-radius:18px;overflow:hidden;background:#fff;break-inside:avoid}.doc-month-h{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid rgba(15,23,42,.08);font-size:13px;font-weight:800}.doc-month-b{padding:6px 0}.doc-mrow{display:grid;grid-template-columns:68px 1fr auto;gap:10px;align-items:center;padding:8px 14px;border-bottom:1px solid rgba(15,23,42,.06);font-size:12px}.doc-mrow:last-child{border-bottom:none}.doc-mrow.auto{background:#fafafa}.doc-date{color:#64748b;font-weight:700;font-variant-numeric:tabular-nums}.doc-party{text-align:right}.doc-muted{color:#94a3b8;font-weight:600;font-size:11px}
     .doc-stat-line{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;margin-bottom:10px}.doc-stat-line:last-child{margin-bottom:0}.doc-stat-name{font-size:12px;font-weight:700}.doc-stat-bar{height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden}.doc-stat-fill{height:100%;border-radius:999px}.doc-stat-value{font-size:12px;font-weight:800;text-align:right}.doc-foot{margin-top:12px;text-align:right;font-size:11px;color:#64748b}
     @media print{body{background:#fff;padding:0 0 0 0}}
-  </style></head><body>${buildPlanHTML()}</body></html>`;
+  
+
+/* ─── Dashboard ─── */
+.dash-hero {
+  background: linear-gradient(135deg, var(--blue) 0%, #5AC8FA 100%);
+  border-radius: var(--r-lg); padding: 20px 22px; margin-bottom: 16px;
+  color: #fff; box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.dash-hero-title { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; }
+.dash-hero-sub { font-size: 13px; opacity: 0.9; margin-top: 3px; }
+.dash-hero-year { background: rgba(255,255,255,0.22); border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+.dash-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px;
+}
+.dash-card {
+  background: var(--surface); border-radius: var(--r-lg); padding: 14px 15px;
+  box-shadow: var(--shadow); border-top: 3px solid transparent; min-height: 88px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.dash-card-lbl { font-size: 11px; font-weight: 600; color: var(--label2); text-transform: uppercase; letter-spacing: 0.05em; }
+.dash-card-val { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; margin-top: 4px; line-height: 1.3; }
+.dash-card-sub { font-size: 12px; color: var(--label2); margin-top: 2px; }
+.dash-section-title { font-size: 15px; font-weight: 700; margin: 4px 0 10px; letter-spacing: -0.2px; }
+.dash-timeline { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.dash-tl-row {
+  background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow);
+  padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+}
+.dash-tl-date {
+  min-width: 46px; text-align: center; background: var(--fill); border-radius: 10px;
+  padding: 6px 4px; flex-shrink: 0;
+}
+.dash-tl-day { font-size: 17px; font-weight: 700; line-height: 1; }
+.dash-tl-mon { font-size: 10px; color: var(--label2); text-transform: uppercase; }
+.dash-tl-body { flex: 1; min-width: 0; }
+.dash-tl-type { font-size: 14px; font-weight: 600; }
+.dash-tl-meta { font-size: 12px; color: var(--label2); margin-top: 1px; }
+.dash-quicklinks { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.dash-qlink {
+  background: var(--surface); border-radius: 20px; padding: 8px 14px; box-shadow: var(--shadow);
+  font-size: 13px; font-weight: 500; color: var(--label); cursor: pointer; display: flex; align-items: center; gap: 6px;
+  border: none; font-family: var(--font); transition: opacity 0.12s;
+}
+.dash-qlink:active { opacity: 0.7; }
+
+</style></head><body>${buildPlanHTML()}</body></html>`;
 }
 
 async function exportPDF() {
@@ -2614,9 +2775,11 @@ function buildIcsEvents(kind) {
   const putzData = getPutzData();
   const muellData = getMuellData();
   const filterPartyId = document.getElementById('icsPartySelect') ? document.getElementById('icsPartySelect').value : '';
+  const today = todayIso();
 
   if (kind === 'putz' || kind === 'all') {
     putzData.forEach((e, idx) => {
+      if (e.iso < today) return; // nur zukünftige Termine
       const assignedId = putzMap.get(`p${idx}`);
       if (filterPartyId && assignedId !== filterPartyId) return;
       const p = assignedId && P(assignedId);
@@ -2635,6 +2798,7 @@ function buildIcsEvents(kind) {
     muellData.forEach((e, idx) => {
       if (!e.pid) return;
       const iso = `${ACTIVE_YEAR}-${String(e.m + 1).padStart(2, '0')}-${String(parseInt(e.d, 10)).padStart(2, '0')}`;
+      if (iso < today) return; // nur zukünftige Termine
       const assignedId = muellMap.get(`m${idx}`);
       const p = assignedId && P(assignedId);
       events.push({
@@ -2675,6 +2839,11 @@ function closeIcsModal() { document.getElementById('icsOverlay').classList.remov
 
 function downloadIcs(kind) {
   const content = buildIcsFile(kind);
+  const eventCount = buildIcsEvents(kind).length;
+  if (!eventCount) {
+    showToast('Keine zukünftigen Termine zum Exportieren gefunden');
+    return;
+  }
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
   const filename = kind === 'putz' ? `putzplan-${ACTIVE_YEAR}.ics` : kind === 'muell' ? `muelltonnenplan-${ACTIVE_YEAR}.ics` : `hausplan-${ACTIVE_YEAR}-komplett.ics`;
   const url = URL.createObjectURL(blob);
@@ -2683,7 +2852,7 @@ function downloadIcs(kind) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   closeIcsModal();
-  showToast('Kalenderdatei heruntergeladen');
+  showToast(`${eventCount} zukünftige Termine exportiert`);
 }
 
 document.getElementById('loginOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeLoginModal(); });
