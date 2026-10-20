@@ -810,6 +810,61 @@ function toggleTheme(){
 }
 </script>
 <script>
+/* Emoji → Linien-Icons (rein optisch, ändert keine App-Logik) */
+(function(){
+  var st=document.createElement('style');
+  st.textContent=
+    '.ico{width:1em;height:1em;flex-shrink:0;vertical-align:-.14em}'+
+    '.btn .ico{width:15px;height:15px;vertical-align:middle}'+
+    '.stat-icon.has-ico{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-size:0;margin-bottom:14px;'+
+      'background:linear-gradient(135deg,var(--blue-bg),rgba(244,162,97,.14));color:var(--blue);'+
+      'transition:transform .5s cubic-bezier(.22,1,.36,1)}'+
+    '.stat-card:hover .stat-icon.has-ico{transform:rotate(-8deg) scale(1.08)}'+
+    '.stat-icon.has-ico .ico{width:23px;height:23px}'+
+    '.avatar.has-ico .ico{width:21px;height:21px}';
+  document.head.appendChild(st);
+
+  var P={
+    '🧹':'<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/>',
+    '🗑':'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/>',
+    '👥':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    '👤':'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    '📅':'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    '📆':'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    '🏠':'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+    '✅':'<circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.7 2.7L16 9.5"/>',
+    '📊':'<path d="M18 20V10M12 20V4M6 20v-6"/>',
+    '🔁':'<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    '🔄':'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+    '⭐':'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    '🎉':'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    '⚠':'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+    '📄':'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>',
+    '🔔':'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    '⏳':'<path d="M5 22h14M5 2h14"/><path d="M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22"/><path d="M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2"/>'
+  };
+  var re=new RegExp('('+Object.keys(P).join('|')+')\\uFE0F?','g');
+  function icon(k){
+    return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+P[k]+'</svg>';
+  }
+  var SEL='.stat-icon,.avatar,.dash-quicklinks .btn,.sec-sub,.pname,.pdetail,.legend,.notice span';
+  function run(){
+    document.querySelectorAll(SEL).forEach(function(el){
+      var h=el.innerHTML; re.lastIndex=0;
+      if(!re.test(h)) return;
+      re.lastIndex=0;
+      el.innerHTML=h.replace(re,function(m,k){return icon(k)});
+      if(el.matches('.stat-icon,.avatar')) el.classList.add('has-ico');
+    });
+  }
+  var t=null;
+  new MutationObserver(function(){ if(t) return; t=requestAnimationFrame(function(){t=null;run()}); })
+    .observe(document.body,{childList:true,subtree:true});
+  run();
+})();
+</script>
+
+<script>
 // ════════════════════════════════════════════════════════════════
 //  EXACT DATA FROM PDF – hardcoded, not recalculated
 // ════════════════════════════════════════════════════════════════
